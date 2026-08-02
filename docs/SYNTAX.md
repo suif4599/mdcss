@@ -209,6 +209,18 @@ Table: .这是一个表格
 
 根据各列内容自动确定列宽。
 
+### 基础字号
+
+使用 `--font-size` 参数设置文档基础字号（默认 16px）。
+
+**作用**：较小的字号可避免宽表格自动缩小。当表格列数较多、内容较丰富时，浏览器为适应页面宽度会自动缩小字体；设置较小的基础字号可避免此问题。
+
+**示例**：
+
+```bash
+python mdcss.py --font-size 12px --main-css preview_theme/github-light.css --codeblock-css prism_theme/github.css
+```
+
 ## 3. 多列排版
 
 当 `--enable-parser` 启用时生效。

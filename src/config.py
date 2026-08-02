@@ -122,7 +122,8 @@ def save_config(args: argparse.Namespace) -> None:
     for key, dotted in [("extension_pattern", "paths.extension_pattern"),
                         ("print_margin", "print.print_margin"),
                         ("auto_count", "headings.auto_count"),
-                        ("heading_underline", "headings.heading_underline")]:
+                        ("heading_underline", "headings.heading_underline"),
+                        ("font_size", "fonts.font_size")]:
         _set(data, dotted, getattr(args, key, None))
 
     # Boolean flags
@@ -208,6 +209,16 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
             "Otherwise the value is treated as a font family name and resolved via fontconfig "
             "(fc-match); family-name resolution is Linux-only and not yet implemented on Windows. "
             "If omitted, document body font-family will not be overridden."
+        ),
+    )
+    parser.add_argument(
+        "--font-size",
+        type=str,
+        default=_nested_get(cfg, "fonts.font_size", "16px"),
+        help=(
+            "Base font size for the document body (e.g., '12px', '14px', '16px'). "
+            "Smaller sizes help wide tables fit without automatic shrinking. "
+            "Default: 16px"
         ),
     )
     parser.add_argument(

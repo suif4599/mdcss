@@ -16,6 +16,7 @@ def build_style_blocks(
     enable_parser: bool = False,
     enable_table_horizontal_scroll: bool = False,
     heading_underline: str = "",
+    font_size: str = "16px",
 ) -> list[str]:
     blocks: list[str] = []
 
@@ -28,8 +29,9 @@ def build_style_blocks(
 
     code_font_family = None
     blocks.append(
-        """
-.markdown-preview.markdown-preview {
+        f"""
+.markdown-preview.markdown-preview {{
+  font-size: {font_size} !important;
 """
     )
     if code_font_path is not None:
