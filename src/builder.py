@@ -80,11 +80,13 @@ def build_style_blocks(
     max-width: 100% !important;
     table-layout: auto !important;
     overflow-x: visible !important;
+    font-size: inherit !important;
   }
   th, td {
     white-space: normal !important;
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
+    font-size: inherit !important;
   }
 """)
 
