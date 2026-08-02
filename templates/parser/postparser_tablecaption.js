@@ -17,7 +17,7 @@ html = html.replace(
         if (!caption) return _match;
         const prefix = caption.startsWith('.') ? '表@TABLE_COUNT_PLACEHOLDER@:\t' : '';
         const displayCaption = caption.startsWith('.') ? caption.slice(1) : caption;
-        return `<figure style="width: 100%; margin: 0 auto; text-align: center;">
+        return `<figure style="width: 100%; margin: 0 auto;">
 <figcaption style="text-align: center; overflow-wrap: break-word;">${prefix}${displayCaption}</figcaption>
 ${tableHtml}
 </figure>`;
