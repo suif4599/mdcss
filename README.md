@@ -176,44 +176,43 @@ python mdcss/mdcss.py \
 
 ## 5. 在nix中使用
 
+仓库本身是一个 flake，提供 Home Manager module（`homeManagerModules.mdcss`），无需手动 fetchgit：
+
 ```nix
-{pkgs, ...}: let
-  scriptSrc = pkgs.fetchgit {
-    url = "https://github.com/suif4599/MdMisc.git";
-    rev = "commit";
-    hash = "sha256-xxx=";
+# flake.nix
+inputs.mdcss.url = "github:suif4599/mdcss";
+```
 
-    sparseCheckout = ["mdcss"];
+```nix
+# Home Manager 配置
+{
+  imports = [inputs.mdcss.homeManagerModules.mdcss];
+
+  services.mdcss = {
+    enable = true;
+
+    mainCss = "preview_theme/github-light.css";
+    codeblockCss = "prism_theme/github.css";
+    printMargin = "5mm";
+
+    # 以下均为可选项
+    font = "${some-font-pkg}/share/fonts/....otf";  # 正文字体
+    codeFont = "${some-font-pkg}/share/fonts/....ttf";  # 代码块字体
+
+    enableParser = true;  # 图片宽度 / 表格合并 / 多列 / 标题编号等
+    enableHeader = true;  # head.html 注入
+    expandDetail = true;  # 打印时自动展开 <details>（需 enableHeader）
+
+    # 推荐显式指定扩展目录，避免运行时去 ~/.vscode/extensions 匹配
+    extensionDir = "${pkgs.vscode-extensions.shd101wyy.markdown-preview-enhanced}/share/vscode/extensions/shd101wyy.markdown-preview-enhanced";
   };
-
-  pythonEnv = pkgs.python3.withPackages (
-    ps:
-      with ps; [
-        cssutils
-        fonttools
-        jsbeautifier
-        cssbeautifier
-      ]
-  );
-
-  vscode-markdown-preview-enhanced-home =
-    pkgs.runCommand
-    "vscode-markdown-preview-enhanced-home" {
-      nativeBuildInputs = [pythonEnv];
-    } ''
-      mkdir -p $out/crossnote
-      cd ${scriptSrc}/mdcss
-      python mdcss.py \
-        --your-custom-config \
-        --extension-dir "${pkgs.vscode-extensions.shd101wyy.markdown-preview-enhanced}/share/vscode/extensions/shd101wyy.markdown-preview-enhanced" \
-        --output $out/crossnote
-    '';
-in {
-  home.packages = [
-    # other pkgs
-    vscode-markdown-preview-enhanced-home
-  ];
-
-  xdg.configFile."crossnote".source = "${vscode-markdown-preview-enhanced-home}/crossnote";
 }
 ```
+
+其余选项（`autoCount`、`headingUnderline`、`enableTableCaption` 等）与第 3 节的 CLI 参数一一对应。
+
+部署方式说明：
+
+- 构建产物 `style.less` / `parser.js` / `head.html` / `fonts/` 由 oneshot 服务 `mdcss-deploy.service` 在登录时以普通可写文件部署到 crossnote 的配置目录。
+- 部署目标与 MPE 扩展自身的解析逻辑一致：设置了 `XDG_CONFIG_HOME` 时为 `$XDG_CONFIG_HOME/crossnote`，否则为 `~/.local/state/crossnote`。注意扩展在 Linux 下**不会**读取 `~/.config/crossnote`（除非通过 `XDG_CONFIG_HOME` 指过去）。
+- 扩展会在同一目录维护自己的 `config.js`（katex/mathjax/mermaid 等设置），部署脚本只替换上述四个受管条目，不会触碰它；也因此不能使用指向 nix store 的只读符号链接（`xdg.configFile`）来部署。

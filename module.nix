@@ -48,12 +48,14 @@
 
   deployScript = pkgs.writeShellScript "mdcss-deploy" ''
     set -euo pipefail
-    DEST="''${XDG_CONFIG_HOME:-$HOME/.config}/crossnote"
-    if [ -e "$DEST" ] || [ -L "$DEST" ]; then
-      rm -rf -- "$DEST"
+    if [ -n "''${XDG_CONFIG_HOME:-}" ]; then
+      DEST="$XDG_CONFIG_HOME/crossnote"
+    else
+      DEST="$HOME/.local/state/crossnote"
     fi
-    cp -a -- "${crossnoteHome}/crossnote" "$DEST"
-    chmod 755 "$DEST"
+    mkdir -p "$DEST"
+    rm -rf -- "$DEST/style.less" "$DEST/parser.js" "$DEST/head.html" "$DEST/fonts"
+    cp -a -- "${crossnoteHome}/crossnote/." "$DEST/"
     find "$DEST" -type d -exec chmod 755 {} +
     find "$DEST" -type f -exec chmod 644 {} +
     echo "Wrote $DEST" >&2
