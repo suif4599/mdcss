@@ -76,8 +76,9 @@ def build_style_blocks(
         blocks.append("""
   table {
     display: table !important;
-    width: 100% !important;
+    width: fit-content !important;
     max-width: 100% !important;
+    margin: 0 auto !important;
     table-layout: auto !important;
     overflow-x: visible !important;
     font-size: inherit !important;
