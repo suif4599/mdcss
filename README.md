@@ -61,7 +61,7 @@ python mdcss/mdcss.py \
 | --- | ----- | ----- |
 | `--main-css` | **必需** | 正文打印主题 CSS，相对路径在 `<extension-dir>/crossnote/styles/` 中搜索 |
 | `--codeblock-css` | **必需** | 代码块打印主题 CSS，相对路径在 `<extension-dir>/crossnote/styles/` 中搜索 |
-| `--font` | `None` | 正文字体文件路径（.ttf/.otf/.woff/.woff2）或字体名称，路径自动解析同目录下的同族变体 |
+| `--font` | `None` | 正文字体文件路径（.ttf/.otf/.woff/.woff2/.ttc/.otc）或字体名称，路径自动解析同目录下的同族变体 |
 | `--font-size` | `16px` | 基础字号，较小的字号可避免宽表格自动缩小 |
 | `--code-font` | `None` | 代码块字体文件路径或字体名称，其余语义同 `--font` |
 | `--print-margin` | `5mm` | 打印页边距，支持 CSS 长度单位和 1-4 值语法（如 `2cm`、`20mm 10mm`） |

@@ -13,6 +13,12 @@ FONT_FORMATS = {
     ".woff2": "woff2",
 }
 
+# Collection 格式：一个文件里包含多个字体（TrueType Collection / OpenType Collection）。
+# 浏览器 @font-face 的 format 不能直接用 "collection"，需按每个子字体内部的
+# 实际格式（truetype / opentype）给出，因此这里不放进 FONT_FORMATS。
+FONT_COLLECTION_EXTENSIONS = frozenset({".ttc", ".otc"})
+SUPPORTED_FONT_EXTENSIONS = frozenset({*FONT_FORMATS, *FONT_COLLECTION_EXTENSIONS})
+
 
 def _get_name_record(font: TTFont, name_ids: tuple[int, ...]) -> str | None:
     name_table = font.get("name")
@@ -96,9 +102,10 @@ def _copy_font_to_assets(
 def resolve_font_path(font_input: str | Path) -> Path:
     candidate = Path(font_input).expanduser()
     if candidate.is_file():
-        if candidate.suffix.lower() not in FONT_FORMATS:
+        if candidate.suffix.lower() not in SUPPORTED_FONT_EXTENSIONS:
             raise ValueError(
-                f"Unsupported font file: {candidate} (.ttf/.otf/.woff/.woff2 only)"
+                f"Unsupported font file: {candidate} "
+                "(.ttf/.otf/.woff/.woff2/.ttc/.otc only)"
             )
         return candidate.resolve()
 
@@ -191,7 +198,7 @@ def _resolve_via_windows(family: str) -> Path:
     for d in (windows_dir / "Fonts", user_fonts_dir):
         if d.is_dir():
             candidates.extend(
-                p for p in d.iterdir() if p.suffix.lower() in FONT_FORMATS
+                p for p in d.iterdir() if p.suffix.lower() in SUPPORTED_FONT_EXTENSIONS
             )
 
     target = _normalize_font_family_name(family)
@@ -204,75 +211,114 @@ def _resolve_via_windows(family: str) -> Path:
         if not candidate.is_file():
             continue
         try:
-            family_name, *_ = read_font_metadata(candidate)
+            entries = read_font_metadata_many(candidate)
         except Exception:
             continue
-        if _normalize_font_family_name(family_name) == target:
-            return candidate.resolve()
+        for family_name, *_ in entries:
+            if _normalize_font_family_name(family_name) == target:
+                return candidate.resolve()
 
     raise ValueError(
         f"Font family not found on Windows: {family!r}. "
-        "Searched the font registry and C:\\Windows\\Fonts / per-user Fonts. "
-        "Note: TrueType Collection (.ttc) files are not supported."
+        "Searched the font registry and C:\\Windows\\Fonts / per-user Fonts."
     )
 
 
+def _read_font_entry(
+    font: TTFont,
+    font_path: Path,
+    explicit_format: str | None,
+) -> tuple[str, int, str, str, list[str]]:
+    """从一个已打开的 TTFont 对象读取元数据。
+
+    ``explicit_format`` 用于单字体文件（.ttf/.otf/.woff/.woff2 按后缀映射）；
+    为 None 时（集合文件内子字体）按字体内部的字形表判断实际格式。
+    """
+    family_name = _get_name_record(font, (16, 1))
+    if family_name is None:
+        raise ValueError(f"Unable to determine font family name: {font_path}")
+    aliases = _name_aliases(font)
+    if family_name not in aliases:
+        aliases.insert(0, family_name)
+
+    weight = 400
+    if "OS/2" in font:
+        weight = int(getattr(font["OS/2"], "usWeightClass", 400) or 400)
+
+    style = "normal"
+    if "post" in font and float(getattr(font["post"], "italicAngle", 0) or 0) != 0:
+        style = "italic"
+    elif "head" in font and getattr(font["head"], "macStyle", 0) & 0b10:
+        style = "italic"
+    else:
+        subfamily_name = _get_name_record(font, (17, 2)) or ""
+        if "italic" in subfamily_name.casefold() or "oblique" in subfamily_name.casefold():
+            style = "italic"
+
+    font_format = explicit_format or ("truetype" if "glyf" in font else "opentype")
+    return family_name, weight, style, font_format, aliases
+
+
 def read_font_metadata(font_path: Path) -> tuple[str, int, str, str, list[str]]:
+    """读取字体文件的主字体的元数据（兼容接口）。
+
+    对 .ttc/.otc 集合文件返回第一个子字体的元数据；需要全部子字体时请用
+    :func:`read_font_metadata_many`。
+    """
+    return read_font_metadata_many(font_path)[0]
+
+
+def read_font_metadata_many(
+    font_path: Path,
+) -> list[tuple[str, int, str, str, list[str]]]:
+    """返回一个字体文件中所有字体的元数据。
+
+    普通 .ttf/.otf/.woff/.woff2 文件返回 1 项；.ttc/.otc 集合文件返回其中
+    每一个子字体的元数据。
+    """
     if not font_path.exists():
         raise FileNotFoundError(f"Font file not found: {font_path}")
     if not font_path.is_file():
         raise ValueError(f"Font path is not a file: {font_path}")
 
-    font_format = FONT_FORMATS.get(font_path.suffix.lower())
-    if font_format is None:
+    suffix = font_path.suffix.lower()
+    if suffix not in SUPPORTED_FONT_EXTENSIONS:
         raise ValueError(
-            f"Unsupported font file: {font_path} (.ttf/.otf/.woff/.woff2 only)"
+            f"Unsupported font file: {font_path} (.ttf/.otf/.woff/.woff2/.ttc/.otc only)"
         )
 
+    if suffix in FONT_COLLECTION_EXTENSIONS:
+        from fontTools.ttLib import TTCollection  # pyright: ignore[reportMissingImports]
+
+        with TTCollection(font_path) as collection:
+            return [_read_font_entry(f, font_path, None) for f in collection.fonts]
+
     with TTFont(font_path) as font:
-        family_name = _get_name_record(font, (16, 1))
-        if family_name is None:
-            raise ValueError(f"Unable to determine font family name: {font_path}")
-        aliases = _name_aliases(font)
-        if family_name not in aliases:
-            aliases.insert(0, family_name)
-
-        weight = 400
-        if "OS/2" in font:
-            weight = int(getattr(font["OS/2"], "usWeightClass", 400) or 400)
-
-        style = "normal"
-        if "post" in font and float(getattr(font["post"], "italicAngle", 0) or 0) != 0:
-            style = "italic"
-        elif "head" in font and getattr(font["head"], "macStyle", 0) & 0b10:
-            style = "italic"
-        else:
-            subfamily_name = _get_name_record(font, (17, 2)) or ""
-            if "italic" in subfamily_name.casefold() or "oblique" in subfamily_name.casefold():
-                style = "italic"
-
-    return family_name, weight, style, font_format, aliases
+        return [_read_font_entry(font, font_path, FONT_FORMATS[suffix])]
 
 
 def resolve_font_family(font_path: Path, font_assets_dir: Path) -> tuple[str, str]:
     font_path = font_path.expanduser().resolve()
-    base_family_name, _, _, _, _ = read_font_metadata(font_path)
+    base_entries = read_font_metadata_many(font_path)
+    if not base_entries:
+        raise ValueError(f"No font found in: {font_path}")
+    base_family_name = base_entries[0][0]
     base_family_key = _normalize_font_family_name(base_family_name)
 
     variant_files: list[tuple[Path, int, str, str, list[str]]] = []
     for candidate in sorted(font_path.parent.iterdir()):
-        if candidate.suffix.lower() not in FONT_FORMATS or not candidate.is_file():
+        if candidate.suffix.lower() not in SUPPORTED_FONT_EXTENSIONS or not candidate.is_file():
             continue
 
         try:
-            family_name, weight, style, font_format, aliases = read_font_metadata(candidate)
+            entries = read_font_metadata_many(candidate)
         except Exception:
             continue
 
-        if _normalize_font_family_name(family_name) != base_family_key:
-            continue
-
-        variant_files.append((candidate, weight, style, font_format, aliases))
+        for family_name, weight, style, font_format, aliases in entries:
+            if _normalize_font_family_name(family_name) != base_family_key:
+                continue
+            variant_files.append((candidate, weight, style, font_format, aliases))
 
     if not variant_files:
         raise ValueError(f"No usable font variants found for: {font_path}")

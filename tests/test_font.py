@@ -89,6 +89,18 @@ class TestResolveFontPathWindows:
         with pytest.raises(ValueError, match="Font family not found on Windows"):
             resolve_font_path("Definitely-Not-A-Real-Font-12345")
 
+    def test_resolves_collection_family(self) -> None:
+        """Family names backed by a .ttc collection (e.g. 微软雅黑 / SimSun)."""
+        from src.font import resolve_font_path
+
+        for name in ("Microsoft YaHei", "SimSun"):
+            try:
+                resolved = resolve_font_path(name)
+            except (ValueError, FileNotFoundError) as exc:
+                pytest.skip(f"{name} not resolvable on this Windows: {exc}")
+            assert resolved.is_file()
+            assert resolved.suffix.lower() in (".ttf", ".otf", ".ttc", ".otc")
+
 
 # ---------------------------------------------------------------------------
 # read_font_metadata — requires a real font
@@ -104,6 +116,24 @@ def _find_test_font() -> Path | None:
         # Linux
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/TTF/DejaVuSans.ttf",
+        # macOS
+        "/System/Library/Fonts/Helvetica.ttc",
+    ]
+    for path in candidates:
+        p = Path(path)
+        if p.is_file():
+            return p
+    return None
+
+
+def _find_test_collection() -> Path | None:
+    """Search common locations for a .ttc/.otc collection file."""
+    candidates = [
+        # Windows
+        "C:/Windows/Fonts/msyh.ttc",
+        "C:/Windows/Fonts/simsun.ttc",
+        # Linux (Noto CJK etc.)
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
         # macOS
         "/System/Library/Fonts/Helvetica.ttc",
     ]
@@ -155,3 +185,47 @@ class TestReadFontMetadata:
         fake.write_text("not a font")
         with pytest.raises(ValueError, match="Unsupported font file"):
             read_font_metadata(fake)
+
+
+class TestReadFontMetadataMany:
+    @classmethod
+    @pytest.fixture(scope="class")
+    def collection_path(cls) -> Path:
+        collection = _find_test_collection()
+        if collection is None:
+            pytest.skip("No .ttc/.otc collection found on this system")
+        return collection
+
+    @classmethod
+    @pytest.fixture(scope="class")
+    def single_font_path(cls) -> Path:
+        font = _find_test_font()
+        if font is None:
+            pytest.skip("No test font found on this system")
+        return font
+
+    def test_collection_yields_all_faces(self, collection_path: Path) -> None:
+        from src.font import read_font_metadata_many
+
+        entries = read_font_metadata_many(collection_path)
+        assert len(entries) >= 1
+        for family, weight, style, fmt, aliases in entries:
+            assert isinstance(family, str) and len(family) > 0
+            assert 100 <= weight <= 1000
+            assert style in ("normal", "italic")
+            assert fmt in ("truetype", "opentype")
+            assert family in aliases
+
+    def test_single_font_file_yields_one_entry(self, single_font_path: Path) -> None:
+        from src.font import read_font_metadata_many
+
+        entries = read_font_metadata_many(single_font_path)
+        assert len(entries) == 1
+
+    def test_read_font_metadata_matches_first_entry(
+        self, collection_path: Path
+    ) -> None:
+        from src.font import read_font_metadata, read_font_metadata_many
+
+        first = read_font_metadata_many(collection_path)[0]
+        assert read_font_metadata(collection_path) == first
