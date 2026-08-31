@@ -102,7 +102,15 @@ def resolve_font_path(font_input: str | Path) -> Path:
             )
         return candidate.resolve()
 
-    return _resolve_via_fontconfig(str(font_input))
+    system = platform.system()
+    if system == "Linux":
+        return _resolve_via_fontconfig(str(font_input))
+    if system == "Windows":
+        return _resolve_via_windows(str(font_input))
+    raise NotImplementedError(
+        f"Font family resolution by name is not supported on {system}. "
+        "Please provide a font file path directly."
+    )
 
 
 def _resolve_via_fontconfig(family: str) -> Path:
@@ -139,6 +147,74 @@ def _resolve_via_fontconfig(family: str) -> Path:
         )
 
     return resolved
+
+
+def _resolve_via_windows(family: str) -> Path:
+    """Resolve a font family name to a font file on Windows.
+
+    Candidates are gathered from:
+      1. The system/user font registry keys (HKLM / HKCU).
+      2. A directory scan of ``C:\\Windows\\Fonts`` and the per-user
+         ``%LOCALAPPDATA%\\Microsoft\\Windows\\Fonts`` folder.
+
+    Each candidate is matched against ``family`` using its real metadata
+    family name (via :func:`read_font_metadata`), so matches are robust to
+    registry key-name formatting and localized names.
+    """
+    import os
+    import winreg
+
+    windows_dir = Path(os.environ.get("WINDIR", r"C:\Windows"))
+    user_fonts_dir = (
+        Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData/Local"))
+        / "Microsoft"
+        / "Windows"
+        / "Fonts"
+    )
+
+    candidates: list[Path] = []
+    fonts_key = r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+    for hive in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+        try:
+            with winreg.OpenKey(hive, fonts_key) as key:
+                for i in range(winreg.QueryInfoKey(key)[1]):
+                    _, value, _ = winreg.EnumValue(key, i)
+                    if not isinstance(value, str) or not value.strip():
+                        continue
+                    p = Path(value).expanduser()
+                    if not p.is_absolute():
+                        p = windows_dir / "Fonts" / p
+                    candidates.append(p)
+        except OSError:
+            continue
+
+    for d in (windows_dir / "Fonts", user_fonts_dir):
+        if d.is_dir():
+            candidates.extend(
+                p for p in d.iterdir() if p.suffix.lower() in FONT_FORMATS
+            )
+
+    target = _normalize_font_family_name(family)
+    seen: set[str] = set()
+    for candidate in candidates:
+        key = str(candidate).casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        if not candidate.is_file():
+            continue
+        try:
+            family_name, *_ = read_font_metadata(candidate)
+        except Exception:
+            continue
+        if _normalize_font_family_name(family_name) == target:
+            return candidate.resolve()
+
+    raise ValueError(
+        f"Font family not found on Windows: {family!r}. "
+        "Searched the font registry and C:\\Windows\\Fonts / per-user Fonts. "
+        "Note: TrueType Collection (.ttc) files are not supported."
+    )
 
 
 def read_font_metadata(font_path: Path) -> tuple[str, int, str, str, list[str]]:

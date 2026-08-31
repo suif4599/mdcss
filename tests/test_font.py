@@ -4,6 +4,7 @@ Functions that require a real font file are conditionally skipped
 when no test font is available.
 """
 
+import platform
 from pathlib import Path
 
 import pytest
@@ -66,6 +67,27 @@ class TestResolveFontPath:
         fake_font.write_text("not a font")
         with pytest.raises(ValueError, match="Unsupported font file"):
             resolve_font_path(fake_font)
+
+
+@pytest.mark.skipif(platform.system() != "Windows", reason="Windows-only")
+class TestResolveFontPathWindows:
+    """Family-name resolution on Windows (registry + font directories)."""
+
+    def test_resolves_family_name(self) -> None:
+        from src.font import resolve_font_path
+
+        try:
+            resolved = resolve_font_path("Arial")
+        except (ValueError, FileNotFoundError) as exc:
+            pytest.skip(f"Arial not resolvable on this Windows: {exc}")
+        assert resolved.is_file()
+        assert resolved.suffix.lower() in (".ttf", ".otf")
+
+    def test_unknown_family_raises(self) -> None:
+        from src.font import resolve_font_path
+
+        with pytest.raises(ValueError, match="Font family not found on Windows"):
+            resolve_font_path("Definitely-Not-A-Real-Font-12345")
 
 
 # ---------------------------------------------------------------------------

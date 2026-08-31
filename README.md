@@ -61,9 +61,9 @@ python mdcss/mdcss.py \
 | --- | ----- | ----- |
 | `--main-css` | **必需** | 正文打印主题 CSS，相对路径在 `<extension-dir>/crossnote/styles/` 中搜索 |
 | `--codeblock-css` | **必需** | 代码块打印主题 CSS，相对路径在 `<extension-dir>/crossnote/styles/` 中搜索 |
-| `--font` | `None` | 正文字体文件路径（.ttf/.otf/.woff/.woff2），自动解析同目录下的同族变体 |
+| `--font` | `None` | 正文字体文件路径（.ttf/.otf/.woff/.woff2）或字体名称，路径自动解析同目录下的同族变体 |
 | `--font-size` | `16px` | 基础字号，较小的字号可避免宽表格自动缩小 |
-| `--code-font` | `None` | 代码块字体文件路径，同上 |
+| `--code-font` | `None` | 代码块字体文件路径或字体名称，其余语义同 `--font` |
 | `--print-margin` | `5mm` | 打印页边距，支持 CSS 长度单位和 1-4 值语法（如 `2cm`、`20mm 10mm`） |
 | `--output` | `~/.local/state/crossnote` | 输出目录（style.less、parser.js、head.html） |
 | `--extensions-root` | `~/.vscode/extensions` | VS Code 扩展根目录 |
@@ -96,8 +96,8 @@ python mdcss/mdcss.py \
 
 ### 字体
 
-- 使用 `--font` 设置全局字体，只需要给出一个字体文件，程序会自动解析同族字体
-- 使用 `--code-font` 设置代码块字体，只需要给出一个字体文件，程序会自动解析同族字体
+- 使用 `--font` 设置全局字体，只需给出一个字体文件，程序会自动解析同族字体；也可以直接给字体名称（如 `Segoe UI`），程序会在系统字体中自动查找（Linux 用 fontconfig，Windows 用字体注册表 / 系统字体目录）
+- 使用 `--code-font` 设置代码块字体，只需给出一个字体文件，程序会自动解析同族字体，同样支持按字体名称查找
 - 使用 `--font-size` 设置基础字号（默认 16px），较小的字号可避免宽表格自动缩小
 - 对于公式，始终使用默认字体
 
