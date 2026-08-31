@@ -128,11 +128,15 @@
 
 当 `--enable-parser` 启用时，可以在 alt 中使用 `([.]title)` 来插入标题。开头的 `.` 会被替换成递增的 `图N:`。
 
-对于 `r` 样式的多图布局，可以在第一个子图中添加 `([.]subfigure-title([.]figure-title))` 来添加整体标题。
+对于 `r` 样式的多图布局：
+- **子图标题**开头的 `.` 会被替换成 `(a)(b)(c)` 递增字母编号（按组内顺序，每组从 `(a)` 重新开始），**不占用全局图号**；
+- **整体标题**（写在第一个子图的 `([.]subfigure-title([.]figure-title))` 中）开头的 `.` 仍使用 `图N:` 全局编号。
 
-例如：`![40r(这是图a(.这是总标题))](assets/image.jpeg) ![25r(.这是图 b)](assets/image.jpeg)`
+例如：`![40r(.子图A(.总标题))](assets/image.jpeg) ![25r(.子图B)](assets/image.jpeg)`
 
-![40r(这是图a(.这是总标题))](assets/image.jpeg) ![25r(.这是图 b)](assets/image.jpeg)
+效果：子图分别显示 `(a) 子图A`、`(b) 子图B`，整体标题显示 `图1: 总标题`。
+
+![40r(.子图A(.总标题))](assets/image.jpeg) ![25r(.子图B)](assets/image.jpeg)
 
 ## 2. 表格
 

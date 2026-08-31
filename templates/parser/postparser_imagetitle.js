@@ -79,13 +79,26 @@ ${imgTag}
         const width = match ? match[1] : '100%';
         style = style.replace(/width:\s*\d{1,4}(?:px|%)/g, `width: 100%`);
         imgTag = imgTag.replace(/style=(['"])(.*?)\1/i, `style="${style}"`);
-        const finalCaption = caption ? (caption.startsWith('.') ? `图@COUNT_PLACEHOLDER@:\t` + caption.slice(1) : caption) : '';
+        // 子图标题：不参与全局图号，改用 (a)(b)(c) 占位符，在归组时按顺序替换
+        const finalCaption = caption ? (caption.startsWith('.') ? `@SUBFIGURE_PLACEHOLDER@\t` + caption.slice(1) : caption) : '';
         return `<figure style="width: ${width}; margin: 0; display: inline-block; vertical-align: top;" alt="${format}">
 ${imgTag}
     ${finalCaption ? `<figcaption style="text-align: center; overflow-wrap: break-word;">${finalCaption}</figcaption>` : ''}
 </figure>`;
     }
 )
+
+// 子图字母编号：0 → a, 1 → b, ..., 25 → z, 26 → aa, 27 → ab ...
+function subLabel(n) {
+    let label = '';
+    n += 1;
+    while (n > 0) {
+        const rem = (n - 1) % 26;
+        label = String.fromCharCode(97 + rem) + label;
+        n = Math.floor((n - 1) / 26);
+    }
+    return label;
+}
 
 html = html.replace(
     /((<figure\b[^>]*\balt=(?:"[^"]*r[^"]*"|'[^']*r[^']*')[^>]*>[\s\S]*?<\/figure>\s*)+)/g,
@@ -103,6 +116,9 @@ html = html.replace(
             generalCaption = generalCaption.startsWith('.') ? `图@COUNT_PLACEHOLDER@:\t` + generalCaption.slice(1) : generalCaption;
             generalCaption = `<figcaption style="text-align: center; overflow-wrap: break-word;">${generalCaption}</figcaption>`;
         }
+        // 子图 (a)(b)(c) 编号：每组从 (a) 开始，按组内顺序给带占位符的子图标题编号
+        let subIdx = 0;
+        match = match.replace(/@SUBFIGURE_PLACEHOLDER@/g, () => `(${subLabel(subIdx++)})`);
         return `<figure style="text-align: center; width: 100%; margin: 0 auto;">
 ${match}
 ${generalCaption || ''}
