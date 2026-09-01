@@ -110,6 +110,14 @@
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
+  /* Table zebra stripes and header shading (printer-friendly light grays).
+     Placed after <variable>new_rules</variable> so theme rules cannot override it. */
+  html body table tbody tr:nth-child(2n) td {
+    background: #f2f2f2 !important;
+  }
+  html body table thead th {
+    background: #e8e8e8 !important;
+  }
   /* Remove invert and mix */
   img[alt*="i"],
   img[alt*="m"],
