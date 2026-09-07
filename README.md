@@ -25,6 +25,11 @@
 
 注意，脚本提供的部分功能必须使用 **Chrome (Puppeteer)** 才能生效
 
+**部署生效说明**（parser.js / style.less / head.html）：
+
+- MPE 以工作区 `.crossnote/` 中的文件**优先于**全局配置目录（`~/.local/state/crossnote`）：若工作区存在 `.crossnote/parser.js`，部署到全局的版本会被遮蔽、不生效
+- MPE 仅在预览引擎初始化时读取 parser.js，重新生成后需执行 `Developer: Reload Window` 才能在预览 / Open in Browser 中生效
+
 ## 1. 功能一览
 
 若想获得可视化的说明，请参阅 [语法文档](docs/SYNTAX.md)。
@@ -93,6 +98,7 @@ python mdcss/mdcss.py \
 - 去除背景（实验性）：在alt中添加 `m`，原理为设置混合模式为 `multiply`，去除背景仅在预览时生效，该功能为实验性功能，可能存在部分异常
 - 亮度反转（实验性）：当 `--enable-parser` 启用时，可以在alt中添加 `I`，亮度反转仅在预览时生效，该功能为实验性功能，可能存在部分异常
 - 图片标题：当 `--enable-parser` 启用时，可以在alt中使用 `([.]title)` 来插入标题，开头的`.`会被替换成递增的 `图N:`；对于 `r` 样式的多图布局，子图标题开头的`.`会被替换成 `(a)(b)(c)` 字母编号（不占用全局图号），整体标题（写在第一个子图的 `([.]subfigure-title([.]figure-title))` 中）开头的`.`仍使用 `图N:` 编号
+- 非 ASCII 文件名（如中文）的本地图片在 MPE 的「Open in Browser」/ 导出 HTML 中会被二次 URL 编码导致失效，`--enable-parser` 启用时 parser 会自动还原一次双重编码；文件名本身含字面 `%` 的除外
 
 ### 字体
 

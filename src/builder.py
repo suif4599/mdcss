@@ -133,6 +133,10 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
     parser_blocks.append(
         load_template("parser", "preparser_pdf.js")
     )
+    # URI double-encoding fix (must run before other img postprocessors)
+    html_blocks.append(
+        load_template("parser", "postparser_uri_decode.js")
+    )
     # Image alt size
     html_blocks.append(
         load_template("parser", "postparser_image.js")

@@ -138,6 +138,10 @@
 
 ![40r(.子图A(.总标题))](assets/image.jpeg) ![25r(.子图B)](assets/image.jpeg)
 
+### 非 ASCII 文件名的路径修复
+
+MPE 的「Open in Browser」/ 导出 HTML 会对含非 ASCII 字符（如中文）的本地图片路径二次 URL 编码，导致浏览器中图片 404。`--enable-parser` 启用时，parser 会自动将 `src` 中的双重编码还原一次，无需手动处理。注意：文件名本身含字面 `%` 的场景无法还原，建议图片文件使用 ASCII 文件名。
+
 ## 2. 表格
 
 ### 单元格合并与删除
