@@ -229,3 +229,47 @@ class TestReadFontMetadataMany:
 
         first = read_font_metadata_many(collection_path)[0]
         assert read_font_metadata(collection_path) == first
+
+
+class TestReadFamilyNames:
+    """_read_family_names()（按名解析的轻量筛查路径）。"""
+
+    @pytest.fixture(scope="class")
+    def single_font_path(cls) -> Path:
+        font = _find_test_font()
+        if font is None:
+            pytest.skip("No test font found on this system")
+        return font
+
+    @pytest.fixture(scope="class")
+    def collection_path(cls) -> Path | None:
+        collection = _find_test_collection()
+        if collection is None:
+            pytest.skip("No test collection found on this system")
+        return collection
+
+    def test_single_font_matches_full_read(self, single_font_path: Path) -> None:
+        from src.font import _read_family_names, read_font_metadata
+
+        full_family = read_font_metadata(single_font_path)[0]
+        names = _read_family_names(single_font_path)
+        assert len(names) == 1
+        assert names[0] == full_family
+
+    def test_collection_matches_full_read(self, collection_path: Path) -> None:
+        from src.font import _read_family_names, read_font_metadata_many
+
+        full_families = [e[0] for e in read_font_metadata_many(collection_path)]
+        assert _read_family_names(collection_path) == full_families
+
+    def test_invalid_file_returns_empty(self, tmp_path: Path) -> None:
+        from src.font import _read_family_names
+
+        bad = tmp_path / "broken.ttf"
+        bad.write_bytes(b"not a font")
+        assert _read_family_names(bad) == []
+
+    def test_missing_file_returns_empty(self, tmp_path: Path) -> None:
+        from src.font import _read_family_names
+
+        assert _read_family_names(tmp_path / "nope.ttf") == []

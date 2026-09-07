@@ -1,3 +1,4 @@
+import logging
 import platform
 import shutil
 import subprocess
@@ -5,6 +6,15 @@ import unicodedata
 from pathlib import Path
 
 from fontTools.ttLib import TTFont  # pyright: ignore[reportMissingImports]
+
+
+def _silence_bogus_head_timestamp(record: logging.LogRecord) -> bool:
+    # 某些字体（如方正舒体/方正姚体）head 表的 created 时间戳早于 1970，
+    # fontTools 会打无害告警并自动补偿；按名解析扫描系统字体目录时噪音较大。
+    return "timestamp seems very low" not in record.getMessage()
+
+
+logging.getLogger("fontTools.ttLib.tables._h_e_a_d").addFilter(_silence_bogus_head_timestamp)
 
 FONT_FORMATS = {
     ".ttf": "truetype",
@@ -210,6 +220,12 @@ def _resolve_via_windows(family: str) -> Path:
         seen.add(key)
         if not candidate.is_file():
             continue
+        # 先只读 name 表快速比对家族名，命中后再解码完整元数据
+        if not any(
+            _normalize_font_family_name(name) == target
+            for name in _read_family_names(candidate)
+        ):
+            continue
         try:
             entries = read_font_metadata_many(candidate)
         except Exception:
@@ -257,6 +273,36 @@ def _read_font_entry(
 
     font_format = explicit_format or ("truetype" if "glyf" in font else "opentype")
     return family_name, weight, style, font_format, aliases
+
+
+def _read_family_names(font_path: Path) -> list[str]:
+    """轻量读取字体文件中各字体的家族名（只解析 name 表）。
+
+    用于按名解析时的候选快速筛查：不触碰 head/OS/2/post 表，既避免为
+    不相关字体付出完整解码的开销，也不会触发 head 表相关的 fontTools
+    告警。返回与 :func:`read_font_metadata_many` 子字体一一对应的家族名
+    列表；解析失败时返回空列表（与完整读取被跳过的行为一致）。
+    """
+    suffix = font_path.suffix.lower()
+    if suffix in FONT_COLLECTION_EXTENSIONS:
+        from fontTools.ttLib import TTCollection  # pyright: ignore[reportMissingImports]
+
+        try:
+            with TTCollection(font_path, lazy=True) as collection:
+                return [
+                    name
+                    for font in collection.fonts
+                    if (name := _get_name_record(font, (16, 1))) is not None
+                ]
+        except Exception:
+            return []
+
+    try:
+        with TTFont(font_path, lazy=True) as font:
+            name = _get_name_record(font, (16, 1))
+            return [name] if name else []
+    except Exception:
+        return []
 
 
 def read_font_metadata(font_path: Path) -> tuple[str, int, str, str, list[str]]:
@@ -308,6 +354,13 @@ def resolve_font_family(font_path: Path, font_assets_dir: Path) -> tuple[str, st
     variant_files: list[tuple[Path, int, str, str, list[str]]] = []
     for candidate in sorted(font_path.parent.iterdir()):
         if candidate.suffix.lower() not in SUPPORTED_FONT_EXTENSIONS or not candidate.is_file():
+            continue
+
+        # 先只读 name 表快速比对家族名，命中后再解码完整元数据
+        if not any(
+            _normalize_font_family_name(name) == base_family_key
+            for name in _read_family_names(candidate)
+        ):
             continue
 
         try:
