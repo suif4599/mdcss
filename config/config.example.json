@@ -3,7 +3,8 @@
 
   "fonts": {
     "font": "~/fonts/SourceHanSansCN-Regular.otf",
-    "code_font": "~/fonts/MapleMono-Regular.ttf"
+    "code_font": "~/fonts/MapleMono-Regular.ttf",
+    "font_size": "16px"
   },
 
   "themes": {

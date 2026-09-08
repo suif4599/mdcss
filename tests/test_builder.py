@@ -15,6 +15,14 @@ class TestBuildParserBlocks:
         assert isinstance(parser_blocks, list)
         assert isinstance(html_blocks, list)
 
+    def test_uri_decode_block_runs_before_image_block(self) -> None:
+        from src.builder import build_parser_blocks
+
+        _, html_blocks = build_parser_blocks("none, number, number, none, latin, roman")
+        combined = "\n".join(html_blocks)
+        # 解码块以 `%25` 规则为标志，图片宽度块以 extractWidthFromAlt 为标志
+        assert combined.index("%25[0-9A-Fa-f]{2}") < combined.index("extractWidthFromAlt")
+
     def test_enable_table_caption_adds_block(self) -> None:
         from src.builder import build_parser_blocks
 

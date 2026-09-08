@@ -25,6 +25,11 @@
 
 注意，脚本提供的部分功能必须使用 **Chrome (Puppeteer)** 才能生效
 
+**部署生效说明**（parser.js / style.less / head.html）：
+
+- MPE 以工作区 `.crossnote/` 中的文件**优先于**全局配置目录（`~/.local/state/crossnote`）：若工作区存在 `.crossnote/parser.js`，部署到全局的版本会被遮蔽、不生效
+- MPE 仅在预览引擎初始化时读取 parser.js，重新生成后需执行 `Developer: Reload Window` 才能在预览 / Open in Browser 中生效
+
 ## 1. 功能一览
 
 若想获得可视化的说明，请参阅 [语法文档](docs/SYNTAX.md)。
@@ -32,7 +37,7 @@
 | 类别 | 功能 |
 | --- | --- |
 | **图片** | 宽度控制（百分比/px）、单行多图、对齐、文字环绕、反相、亮度反转、去背景、图片标题 |
-| **表格** | 合并单元格、删除单元格、跨页重复标题、表格标题、自动列宽 |
+| **表格** | 合并单元格、删除单元格、跨页重复标题、表格标题、自动列宽、间行深浅背景色（预览+打印） |
 | **多列排版** | 多列布局、列宽控制（百分比/px）、竖直对齐（上/中/下） |
 | **标题编号** | 多级编号、6 种样式（数字/拉丁/罗马/中文等）、可配置各级格式 |
 | **代码行数** | 语言种类后添加 `{.line-numbers}` 启用行号 |
@@ -61,8 +66,9 @@ python mdcss/mdcss.py \
 | --- | ----- | ----- |
 | `--main-css` | **必需** | 正文打印主题 CSS，相对路径在 `<extension-dir>/crossnote/styles/` 中搜索 |
 | `--codeblock-css` | **必需** | 代码块打印主题 CSS，相对路径在 `<extension-dir>/crossnote/styles/` 中搜索 |
-| `--font` | `None` | 正文字体文件路径（.ttf/.otf/.woff/.woff2），自动解析同目录下的同族变体 |
-| `--code-font` | `None` | 代码块字体文件路径，同上 |
+| `--font` | `None` | 正文字体文件路径（.ttf/.otf/.woff/.woff2/.ttc/.otc）或字体名称，路径自动解析同目录下的同族变体 |
+| `--font-size` | `16px` | 基础字号，较小的字号可避免宽表格自动缩小 |
+| `--code-font` | `None` | 代码块字体文件路径或字体名称，其余语义同 `--font` |
 | `--print-margin` | `5mm` | 打印页边距，支持 CSS 长度单位和 1-4 值语法（如 `2cm`、`20mm 10mm`） |
 | `--output` | `~/.local/state/crossnote` | 输出目录（style.less、parser.js、head.html） |
 | `--extensions-root` | `~/.vscode/extensions` | VS Code 扩展根目录 |
@@ -91,12 +97,14 @@ python mdcss/mdcss.py \
 - 反相：在alt中添加 `i`，反相仅在预览时生效
 - 去除背景（实验性）：在alt中添加 `m`，原理为设置混合模式为 `multiply`，去除背景仅在预览时生效，该功能为实验性功能，可能存在部分异常
 - 亮度反转（实验性）：当 `--enable-parser` 启用时，可以在alt中添加 `I`，亮度反转仅在预览时生效，该功能为实验性功能，可能存在部分异常
-- 图片标题：当 `--enable-parser` 启用时，可以在alt中使用 `([.]title)` 来插入标题，开头的`.`会被替换成递增的 `图N:`，对于 `r` 样式的图片，可以在第一个子图中添加 `([.]subfigure-title([.]figure-title))` 来添加整体标题
+- 图片标题：当 `--enable-parser` 启用时，可以在alt中使用 `([.]title)` 来插入标题，开头的`.`会被替换成递增的 `图N:`；对于 `r` 样式的多图布局，子图标题开头的`.`会被替换成 `(a)(b)(c)` 字母编号（不占用全局图号），整体标题（写在第一个子图的 `([.]subfigure-title([.]figure-title))` 中）开头的`.`仍使用 `图N:` 编号
+- 非 ASCII 文件名（如中文）的本地图片在 MPE 的「Open in Browser」/ 导出 HTML 中会被二次 URL 编码导致失效，`--enable-parser` 启用时 parser 会自动还原一次双重编码；文件名本身含字面 `%` 的除外
 
 ### 字体
 
-- 使用 `--font` 设置全局字体，只需要给出一个字体文件，程序会自动解析同族字体
-- 使用 `--code-font` 设置代码块字体，只需要给出一个字体文件，程序会自动解析同族字体
+- 使用 `--font` 设置全局字体，只需给出一个字体文件，程序会自动解析同族字体；也可以直接给字体名称（如 `Segoe UI`），程序会在系统字体中自动查找（Linux 用 fontconfig，Windows 用字体注册表 / 系统字体目录）
+- 使用 `--code-font` 设置代码块字体，只需给出一个字体文件，程序会自动解析同族字体，同样支持按字体名称查找
+- 使用 `--font-size` 设置基础字号（默认 16px），较小的字号可避免宽表格自动缩小
 - 对于公式，始终使用默认字体
 
 ### 多列排版

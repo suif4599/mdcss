@@ -122,7 +122,8 @@ def save_config(args: argparse.Namespace) -> None:
     for key, dotted in [("extension_pattern", "paths.extension_pattern"),
                         ("print_margin", "print.print_margin"),
                         ("auto_count", "headings.auto_count"),
-                        ("heading_underline", "headings.heading_underline")]:
+                        ("heading_underline", "headings.heading_underline"),
+                        ("font_size", "fonts.font_size")]:
         _set(data, dotted, getattr(args, key, None))
 
     # Boolean flags
@@ -203,11 +204,21 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
         default=_resolve_path(_nested_get(cfg, "fonts.font")),
         help=(
             "Optional font file path or font family name for the main document font. "
-            "If a path to a .ttf/.otf/.woff/.woff2 file is given, the script reads its family "
+            "If a path to a .ttf/.otf/.woff/.woff2/.ttc/.otc file is given, the script reads its family "
             "name from metadata and scans sibling files in the same directory for variants. "
             "Otherwise the value is treated as a font family name and resolved via fontconfig "
-            "(fc-match); family-name resolution is Linux-only and not yet implemented on Windows. "
+            "(fc-match) on Linux or the Windows font registry / font directories on Windows. "
             "If omitted, document body font-family will not be overridden."
+        ),
+    )
+    parser.add_argument(
+        "--font-size",
+        type=str,
+        default=_nested_get(cfg, "fonts.font_size", "16px"),
+        help=(
+            "Base font size for the document body (e.g., '12px', '14px', '16px'). "
+            "Smaller sizes help wide tables fit without automatic shrinking. "
+            "Default: 16px"
         ),
     )
     parser.add_argument(
@@ -234,7 +245,8 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
         default=_resolve_path(_nested_get(cfg, "fonts.code_font")),
         help=(
             "Optional font file path or font family name for code blocks. "
-            "Path and family-name semantics match --font (Linux-only fc-match fallback)."
+            "Path and family-name semantics match --font (fc-match on Linux, "
+            "registry/font directories on Windows)."
         ),
     )
     parser.add_argument(

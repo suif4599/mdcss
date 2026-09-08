@@ -51,6 +51,7 @@ def main() -> None:
         enable_parser=args.enable_parser,
         enable_table_horizontal_scroll=args.enable_table_horizontal_scroll,
         heading_underline=args.heading_underline,
+        font_size=args.font_size,
     )
 
     if args.enable_parser:

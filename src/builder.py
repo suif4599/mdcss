@@ -16,6 +16,7 @@ def build_style_blocks(
     enable_parser: bool = False,
     enable_table_horizontal_scroll: bool = False,
     heading_underline: str = "",
+    font_size: str = "16px",
 ) -> list[str]:
     blocks: list[str] = []
 
@@ -28,8 +29,9 @@ def build_style_blocks(
 
     code_font_family = None
     blocks.append(
-        """
-.markdown-preview.markdown-preview {
+        f"""
+.markdown-preview.markdown-preview {{
+  font-size: {font_size} !important;
 """
     )
     if code_font_path is not None:
@@ -74,15 +76,18 @@ def build_style_blocks(
         blocks.append("""
   table {
     display: table !important;
-    width: 100% !important;
+    width: fit-content !important;
     max-width: 100% !important;
+    margin: 0 auto !important;
     table-layout: auto !important;
     overflow-x: visible !important;
+    font-size: inherit !important;
   }
   th, td {
     white-space: normal !important;
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
+    font-size: inherit !important;
   }
 """)
 
@@ -127,6 +132,10 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
     # PDF center
     parser_blocks.append(
         load_template("parser", "preparser_pdf.js")
+    )
+    # URI double-encoding fix (must run before other img postprocessors)
+    html_blocks.append(
+        load_template("parser", "postparser_uri_decode.js")
     )
     # Image alt size
     html_blocks.append(

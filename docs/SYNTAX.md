@@ -128,11 +128,19 @@
 
 当 `--enable-parser` 启用时，可以在 alt 中使用 `([.]title)` 来插入标题。开头的 `.` 会被替换成递增的 `图N:`。
 
-对于 `r` 样式的多图布局，可以在第一个子图中添加 `([.]subfigure-title([.]figure-title))` 来添加整体标题。
+对于 `r` 样式的多图布局：
+- **子图标题**开头的 `.` 会被替换成 `(a)(b)(c)` 递增字母编号（按组内顺序，每组从 `(a)` 重新开始），**不占用全局图号**；
+- **整体标题**（写在第一个子图的 `([.]subfigure-title([.]figure-title))` 中）开头的 `.` 仍使用 `图N:` 全局编号。
 
-例如：`![40r(这是图a(.这是总标题))](assets/image.jpeg) ![25r(.这是图 b)](assets/image.jpeg)`
+例如：`![40r(.子图A(.总标题))](assets/image.jpeg) ![25r(.子图B)](assets/image.jpeg)`
 
-![40r(这是图a(.这是总标题))](assets/image.jpeg) ![25r(.这是图 b)](assets/image.jpeg)
+效果：子图分别显示 `(a) 子图A`、`(b) 子图B`，整体标题显示 `图1: 总标题`。
+
+![40r(.子图A(.总标题))](assets/image.jpeg) ![25r(.子图B)](assets/image.jpeg)
+
+### 非 ASCII 文件名的路径修复
+
+MPE 的「Open in Browser」/ 导出 HTML 会对含非 ASCII 字符（如中文）的本地图片路径二次 URL 编码，导致浏览器中图片 404。`--enable-parser` 启用时，parser 会自动将 `src` 中的双重编码还原一次，无需手动处理。注意：文件名本身含字面 `%` 的场景无法还原，建议图片文件使用 ASCII 文件名。
 
 ## 2. 表格
 
@@ -205,9 +213,25 @@ Table: .这是一个表格
 
 -|||
 
+### 间行深浅背景色
+
+表格自动应用浅色间行条纹（斑马纹），便于阅读多行表格；表头使用略深一档的背景色以与首行数据区分。预览中颜色为半透明灰色，深浅主题下均适用；打印导出 PDF 时使用对应的浅灰色实色（表头 `#e8e8e8`、间行 `#f2f2f2`），打印友好。
+
 ### 自动列宽
 
 根据各列内容自动确定列宽。
+
+### 基础字号
+
+使用 `--font-size` 参数设置文档基础字号（默认 16px）。
+
+**作用**：较小的字号可避免宽表格自动缩小。当表格列数较多、内容较丰富时，浏览器为适应页面宽度会自动缩小字体；设置较小的基础字号可避免此问题。
+
+**示例**：
+
+```bash
+python mdcss.py --font-size 12px --main-css preview_theme/github-light.css --codeblock-css prism_theme/github.css
+```
 
 ## 3. 多列排版
 
