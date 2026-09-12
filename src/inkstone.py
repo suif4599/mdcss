@@ -126,8 +126,9 @@ return html;
     return bridge if bridge.endswith("\n") else bridge + "\n"
 
 
-def write_inkstone_output(client_dir: Path, mappers: str, enable_table_caption: bool = True) -> None:
-    """Write mdcss-bridge.js and mdcss.css under an Inkstone src/client tree."""
+def write_inkstone_output(inkstone_repo: Path, mappers: str, enable_table_caption: bool = True) -> None:
+    """Write mdcss-bridge.js and mdcss.css into an Inkstone repository tree."""
+    client_dir = inkstone_repo / "src" / "client"
     bridge_path = client_dir / "lib" / "markdown" / "mdcss-bridge.js"
     css_path = client_dir / "styles" / "mdcss.css"
     bridge_path.parent.mkdir(parents=True, exist_ok=True)

@@ -30,6 +30,7 @@
     ++ lib.optional cfg.expandDetail "--expand-detail"
     ++ lib.optional cfg.enableTableHorizontalScroll "--enable-table-horizontal-scroll"
     ++ lib.optional cfg.enableTableCaption "--enable-table-caption"
+    ++ lib.optional (!cfg.enableTableCaption) "--no-enable-table-caption"
     # runCommand has no TTY; the declared configuration is the confirmation.
     ++ lib.optionals (cfg.cssFallbackFeatures != []) [
       "--css-fallback-features" (lib.concatStringsSep "," cfg.cssFallbackFeatures)
@@ -64,6 +65,38 @@
     find "$DEST" -type d -exec chmod 755 {} +
     find "$DEST" -type f -exec chmod 644 {} +
     echo "Wrote $DEST" >&2
+  '';
+
+  # Nix installs have no config/config.json, so expose mdcss.py as a callable
+  # wrapper with the module configuration baked in as defaults; extra CLI
+  # arguments are appended and override them (argparse keeps the last
+  # occurrence). Bare invocation regenerates and hot-deploys the crossnote
+  # config; --emit-inkstone <repo-root> writes the Inkstone bridge artifacts
+  # instead and skips the deployment steps.
+  mdcssBridgeScript = pkgs.writeShellScriptBin "mdcss-bridge" ''
+    set -euo pipefail
+    emitInkstone=false
+    for arg in "$@"; do
+      if [ "$arg" = "--emit-inkstone" ]; then emitInkstone=true; fi
+    done
+    if [ -n "''${XDG_CONFIG_HOME:-}" ]; then
+      DEST="$XDG_CONFIG_HOME/crossnote"
+    else
+      DEST="$HOME/.local/state/crossnote"
+    fi
+    if [ "$emitInkstone" = false ]; then
+      mkdir -p "$DEST"
+      rm -rf -- "$DEST/style.less" "$DEST/parser.js" "$DEST/head.html" "$DEST/fonts"
+    fi
+    PYTHONDONTWRITEBYTECODE=1 ${pythonEnv}/bin/python ${scriptSrc}/mdcss.py \
+      ${escapedArgs} \
+      --output "$DEST" \
+      "$@"
+    if [ "$emitInkstone" = false ]; then
+      find "$DEST" -type d -exec chmod 755 {} +
+      find "$DEST" -type f -exec chmod 644 {} +
+      echo "Wrote $DEST" >&2
+    fi
   '';
 in {
   options.services.mdcss = {
@@ -181,8 +214,6 @@ in {
       default = true;
       description = ''
         Render "Table: caption" as a numbered figure caption below tables.
-        Note: the underlying CLI always enables this when invoked without a
-        config.json present, so setting this to false currently has no effect.
       '';
     };
 
@@ -219,7 +250,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [crossnoteHome];
+    home.packages = [crossnoteHome mdcssBridgeScript];
 
     systemd.user.services.mdcss-deploy = {
       Unit = {

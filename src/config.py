@@ -338,9 +338,9 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--enable-table-caption",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         default=_nested_get(cfg, "features.enable_table_caption", True),
-        help="Render \"Table: caption\" as a numbered figure caption below tables.",
+        help="Render \"Table: caption\" as a numbered figure caption below tables (--no-enable-table-caption to disable).",
     )
     parser.add_argument(
         "--enable-header",
@@ -402,8 +402,8 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
         default=_resolve_path(_nested_get(cfg, "paths.emit_inkstone")),
         help=(
             "Generate the Inkstone bridge artifacts and exit: "
-            "mdcss-bridge.js into <dir>/lib/markdown/ and mdcss.css into <dir>/styles/, "
-            "where <dir> is an Inkstone src/client directory. "
+            "mdcss-bridge.js into <dir>/src/client/lib/markdown/ and mdcss.css into "
+            "<dir>/src/client/styles/, where <dir> is an Inkstone repository root. "
             "Reuses --auto-count and --enable-table-caption; MPE outputs are not generated."
         ),
     )

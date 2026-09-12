@@ -137,13 +137,13 @@ class TestInkstoneCss:
 class TestWriteInkstoneOutput:
     """write_inkstone_output() file generation."""
 
-    def test_writes_bridge_and_css_into_client_tree(self, tmp_path: Path) -> None:
+    def test_writes_bridge_and_css_into_repo_tree(self, tmp_path: Path) -> None:
         from src.inkstone import write_inkstone_output
 
-        client_dir = tmp_path / "src" / "client"
-        write_inkstone_output(client_dir, "none, chinese, number, number, latin, roman")
-        assert (client_dir / "lib" / "markdown" / "mdcss-bridge.js").exists()
-        assert (client_dir / "styles" / "mdcss.css").exists()
+        repo = tmp_path / "inkstone"
+        write_inkstone_output(repo, "none, chinese, number, number, latin, roman")
+        assert (repo / "src" / "client" / "lib" / "markdown" / "mdcss-bridge.js").exists()
+        assert (repo / "src" / "client" / "styles" / "mdcss.css").exists()
 
 
 class TestParseMappers:
