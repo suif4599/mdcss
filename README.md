@@ -74,7 +74,9 @@ python mdcss/mdcss.py \
 | `--extensions-root` | `~/.vscode/extensions` | VS Code 扩展根目录 |
 | `--extension-pattern` | `shd101wyy.markdown-preview-enhanced-*` | 匹配 MPE 扩展目录的 glob |
 | `--extension-dir` | `None` | 显式指定扩展目录（覆盖前两个参数） |
-| `--enable-parser` | `False` | 启用 parser.js 增强功能（图片 alt 宽度、表格合并、多列、标题编号、缩进等） |
+| `--enable-parser` | `False` | 启用 parser.js 增强功能（图片控制语法、表格合并、多列、标题编号、缩进等） |
+| `--css-fallback-features` | `""` | 纯 CSS 模式（未启用 `--enable-parser`）下额外覆盖的布局/效果 token，逗号分隔：`r`/`L`/`R`/`Lf`/`Rf`/`i`/`m`。空 = 仅宽度回退（100 条规则）；生成的规则数超过 200 时需要确认 |
+| `--yes` | `False` | 跳过规则数确认提示（无人值守场景，如 nix 构建；非交互且无此参数时直接报错退出） |
 | `--enable-header` | `False` | 启用 head.html 注入（配合 `--expand-detail`） |
 | `--expand-detail` | `False` | 打印时自动展开 `<detail>` 标签（需要 `--enable-header`） |
 | `--enable-table-horizontal-scroll` | `False` | 允许宽表格水平滚动（默认强制换行避免滚动） |
@@ -90,15 +92,31 @@ python mdcss/mdcss.py \
 
 ### 图片
 
-- 宽度设置：在alt中以1-2位整数开头，设置宽度百分比，`--enable-parser` 启用时还支持添加单位 `px` 来设置绝对宽度
-- 单行多图布局：在alt中添加 `r`
-- 左右对齐：在alt中添加 `L/R`
-- 文字环绕图片：在alt中添加 `f`
-- 反相：在alt中添加 `i`，反相仅在预览时生效
-- 去除背景（实验性）：在alt中添加 `m`，原理为设置混合模式为 `multiply`，去除背景仅在预览时生效，该功能为实验性功能，可能存在部分异常
-- 亮度反转（实验性）：当 `--enable-parser` 启用时，可以在alt中添加 `I`，亮度反转仅在预览时生效，该功能为实验性功能，可能存在部分异常
-- 图片标题：当 `--enable-parser` 启用时，可以在alt中使用 `([.]title)` 来插入标题，开头的`.`会被替换成递增的 `图N:`；对于 `r` 样式的多图布局，子图标题开头的`.`会被替换成 `(a)(b)(c)` 字母编号（不占用全局图号），整体标题（写在第一个子图的 `([.]subfigure-title([.]figure-title))` 中）开头的`.`仍使用 `图N:` 编号
+图片语法为 `![control|caption|alt](src)`，以 `|` 分隔为三段，后两段可整体省略；第一段（无 `|` 时取整段）不匹配控制语法且非空时，整段 alt 视为真实替代文本，不触发任何控制语法（`![An English alt](src)` 完全安全）。
+
+> **Breaking change**：旧版把控制串直接混写在 alt 里的语法（如 `![80ri(.标题)](x.png)`）已移除，此类 alt 现在会被当作真实替代文本原样输出。
+
+**control 控制串**（按顺序组合，宽度必须存在，也可整体留空表示仅图注/alt）：
+
+- 宽度：1-4 位整数 + 可选单位 `%`（默认，封顶 100）/ `px`（不封顶）；纯 CSS 模式（未启用 `--enable-parser`）只识别带 `%` 的宽度
+- 布局：`r` 单行多图、`L`/`R` 左右对齐、`Lf`/`Rf` 文字环绕
+- 效果：`i` 反相、`m` 去背景（实验性，混合模式 `multiply`）、`I` 亮度反转（实验性，需 parser）；效果仅在预览时生效
+
+**caption 图注与 alt 真实替代文本**（需 parser）：
+
+- 普通图注前导 `.` 会被替换成递增的 `图N:`；`r` 布局的子图标题前导 `.` 改为 `(a)(b)(c)` 字母编号（按组内顺序，不占用全局图号），整组总标题（写在第一个子图的图注 `(.总标题)` 中）前导 `.` 仍使用 `图N:` 编号
+- 第三个 `|` 之后的所有内容都属于真实 alt（可包含 `|`）；输出 HTML 的 `alt=` 依次取真实 alt、图注文本、空串，控制串不会泄漏
+- 注意：表格单元格内的 `|` 需转义为 `\|`；纯数字 alt（如 `2023`）会被当作宽度控制串
+
 - 非 ASCII 文件名（如中文）的本地图片在 MPE 的「Open in Browser」/ 导出 HTML 中会被二次 URL 编码导致失效，`--enable-parser` 启用时 parser 会自动还原一次双重编码；文件名本身含字面 `%` 的除外
+
+示例：`![40%ri|.图注|A photo](src.png)`、`![80%](src.png)`（纯 CSS 模式同样生效）、`![|.仅图注](src.png)`
+
+**纯 CSS 回退**（未启用 `--enable-parser`）：
+
+- 宽度规则始终生成（`![40%](src)` 有效；无单位宽度与 `px` 需 parser）
+- 布局/效果字母可通过 `--css-fallback-features` 选择性覆盖（如 `"r,i"`），规则按前缀精确匹配穷举生成（`img[alt^="40%ri"]`），不会误伤真实 alt；规则数超过 200 时需交互确认或加 `--yes`
+- 图注、子图总标题、浮动与段落合并为 parser 专属功能
 
 ### 字体
 
@@ -207,7 +225,8 @@ inputs.mdcss.url = "github:suif4599/mdcss";
     font = "${some-font-pkg}/share/fonts/....otf";  # 正文字体
     codeFont = "${some-font-pkg}/share/fonts/....ttf";  # 代码块字体
 
-    enableParser = true;  # 图片宽度 / 表格合并 / 多列 / 标题编号等
+    enableParser = true;  # 图片控制语法 / 表格合并 / 多列 / 标题编号等
+    cssFallbackFeatures = [ "r" "i" ];  # 纯 CSS 回退覆盖的布局/效果 token（enableParser = false 时生效，可选）
     enableHeader = true;  # head.html 注入
     expandDetail = true;  # 打印时自动展开 <details>（需 enableHeader）
 

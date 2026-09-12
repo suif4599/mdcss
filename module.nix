@@ -30,6 +30,11 @@
     ++ lib.optional cfg.expandDetail "--expand-detail"
     ++ lib.optional cfg.enableTableHorizontalScroll "--enable-table-horizontal-scroll"
     ++ lib.optional cfg.enableTableCaption "--enable-table-caption"
+    # runCommand has no TTY; the declared configuration is the confirmation.
+    ++ lib.optionals (cfg.cssFallbackFeatures != []) [
+      "--css-fallback-features" (lib.concatStringsSep "," cfg.cssFallbackFeatures)
+    ]
+    ++ lib.optional (!cfg.enableParser) "--yes"
     ++ (
       if cfg.extensionDir != null
       then ["--extension-dir" "${cfg.extensionDir}"]
@@ -178,6 +183,18 @@ in {
         Render "Table: caption" as a numbered figure caption below tables.
         Note: the underlying CLI always enables this when invoked without a
         config.json present, so setting this to false currently has no effect.
+      '';
+    };
+
+    cssFallbackFeatures = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      description = ''
+        Layout/effect tokens (r, L, R, Lf, Rf, i, m) covered by CSS fallback
+        rules when <option>enableParser</option> is false. Empty means
+        width-only fallback (100 rules). Each selected token multiplies the
+        generated rule count (e.g. ["r", "i"] produces 400 rules); builds
+        pass --yes automatically, so large combinations never block.
       '';
     };
 

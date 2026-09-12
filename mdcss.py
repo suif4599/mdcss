@@ -1,11 +1,20 @@
 from src.config import (
     build_parser,
+    confirm_rule_count,
     load_config,
+    parse_css_fallback_features,
     resolve_crossnote_style_path,
     save_config,
     resolve_extension_dir,
 )
-from src.builder import build_style_blocks, build_parser_blocks, write_output, load_template
+from src.builder import (
+    build_style_blocks,
+    build_parser_blocks,
+    write_output,
+    load_template,
+    count_fallback_rules,
+    RULE_COUNT_THRESHOLD,
+)
 
 
 def main() -> None:
@@ -18,9 +27,21 @@ def main() -> None:
     if args.codeblock_css is None:
         parser.error("--codeblock-css is required (set it via CLI or 'codeblock_css' in config.json)")
 
+    try:
+        css_fallback_features = parse_css_fallback_features(args.css_fallback_features)
+    except ValueError as exc:
+        parser.error(str(exc))
+
     if args.save_config:
         save_config(args)
         return
+
+    if not args.enable_parser:
+        confirm_rule_count(
+            count_fallback_rules(css_fallback_features),
+            args.yes,
+            threshold=RULE_COUNT_THRESHOLD,
+        )
 
     extension_dir = resolve_extension_dir(
         extensions_root=args.extensions_root,
@@ -52,6 +73,7 @@ def main() -> None:
         enable_table_horizontal_scroll=args.enable_table_horizontal_scroll,
         heading_underline=args.heading_underline,
         font_size=args.font_size,
+        css_fallback_features=css_fallback_features,
     )
 
     if args.enable_parser:

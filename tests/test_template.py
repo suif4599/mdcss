@@ -57,7 +57,8 @@ class TestTemplateSubstitution:
 
         result = load_template("css", "printstyle.css",
                                new_rules="body { color: red; }",
-                               print_margin="10mm")
+                               print_margin="10mm",
+                               fallback_print_resets="")
         assert "body { color: red; }" in result
         assert "10mm" in result or "10mm" in result.lower() or "10 mm" in result
 
@@ -68,6 +69,45 @@ class TestTemplateSubstitution:
         # Use a template that definitely doesn't have a custom placeholder
         with pytest.raises(ValueError, match="Placeholder"):
             load_template("css", "style.css", non_existent_key="hello")
+
+
+class TestImageTemplates:
+    """Image postparser templates contain the pipe-grammar machinery."""
+
+    def test_postparser_image_content(self, template_dir: Path) -> None:
+        from src.template import load_template
+
+        result = load_template("parser", "postparser_image.js")
+        assert "MDCSS_CONTROL_RE" in result
+        assert "data-mdcss-cap" in result
+        assert "mdcss-inv" in result
+
+    def test_postparser_imagetitle_content(self, template_dir: Path) -> None:
+        from src.template import load_template
+
+        result = load_template("parser", "postparser_imagetitle.js")
+        assert "mdcss-fig-row" in result
+        assert "mdcss-fig-group" in result
+        assert "mdcss-fig-float-" in result
+
+    def test_style_css_has_no_alt_selectors(self, template_dir: Path) -> None:
+        from src.template import load_template
+
+        result = load_template("css", "style.css")
+        assert "mdcss-" in result
+        assert "alt*=" not in result
+        assert "alt$=" not in result
+
+    def test_printstyle_fallback_resets_placeholder(self, template_dir: Path) -> None:
+        from src.template import load_template
+
+        result = load_template(
+            "css", "printstyle.css",
+            new_rules="body { color: red; }",
+            print_margin="10mm",
+            fallback_print_resets='img[alt^="40%i"] { filter: none; }',
+        )
+        assert 'img[alt^="40%i"] { filter: none; }' in result
 
 
 class TestTemplateDirectory:

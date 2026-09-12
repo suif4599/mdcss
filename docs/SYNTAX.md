@@ -26,86 +26,95 @@
 
 ## 1. 图片
 
+将默认语法 `![alt](src)` 扩展为 `![control|caption|alt](src)`，以 `|` 分隔为三段，后两段可整体省略：
+
+- `control`：控制串，按顺序组合 宽度（1-4 位数字 + 可选单位 `%`（默认，封顶 100）/ `px`（不封顶））+ 布局字母 + 效果字母；也可整体留空（仅图注/alt）
+- `caption`：图注（需 `--enable-parser`），前导 `.` 会被替换成递增的 `图N:`
+- `alt`：真实替代文本，从第三个 `|` 起的所有内容都属于它（可以包含 `|`）；输出 HTML 的 `alt=` 依次取真实 alt、图注文本、空串，控制串不会出现在输出中
+
+第一段（无 `|` 时取整段）不匹配控制语法且非空时，整段 alt 视为真实替代文本，不触发任何控制语法——英文 alt（如 `![An English alt](src)`）完全安全。注意表格单元格内的 `|` 需转义为 `\|`，纯数字 alt（如 `2023`）会被当作宽度。
+
+> [!NOTE]
+> 未启用 `--enable-parser` 的纯 CSS 模式下：带 `%` 的宽度始终生效；布局/效果字母需通过 `--css-fallback-features` 显式启用（规则按前缀精确匹配生成，不会误伤真实 alt）；`px` 宽度、无单位宽度、图注为 parser 专属。
+
 ### 图片宽度设置
 
-将默认语法 `![alt](src)` 扩展为 `![width(title)](src)`，宽度支持百分比（`width = 数字`）和 `px`（`width = 数字 px`）。
-
 代码：
 
-`![25(.这是宽度25%的图片)](./assets/image.jpeg)`
+`![25%|.这是宽度25%的图片](./assets/image.jpeg)`
 
 效果：
 
-![25(.这是宽度25%的图片)](./assets/image.jpeg)
+![25%|.这是宽度25%的图片](./assets/image.jpeg)
 
 代码：
 
-`![100px(.这是宽度100px的图片)](./assets/image.jpeg)`
+`![100px|.这是宽度100px的图片](./assets/image.jpeg)`
 
 效果：
 
-![100px(.这是宽度100px的图片)](./assets/image.jpeg)
+![100px|.这是宽度100px的图片](./assets/image.jpeg)
 
 ### 图片效果
 
-在 `alt` 中添加字母来实现特殊效果：
+在控制串中添加字母来实现特殊效果：
 
 | 字母 | 作用 | 生效时机 |
 | :--: | :---: | ------- |
-| `r` | 单行多图布局 | 始终生效 |
-| `L` / `R` | 左对齐 / 右对齐 | 始终生效 |
-| `f` | 文字环绕 | 始终生效 |
-| `i` | 反相 | 预览时 |
+| `r` | 单行多图布局 | 始终生效（纯 CSS 模式需配置回退） |
+| `L` / `R` | 左对齐 / 右对齐 | 始终生效（纯 CSS 模式需配置回退） |
+| `Lf` / `Rf` | 文字环绕 | 始终生效（纯 CSS 模式需配置回退） |
+| `i` | 反相 | 预览时（纯 CSS 模式需配置回退） |
 | `I` | 亮度反转（实验性） | 需 `--enable-parser` |
-| `m` | 去除背景（实验性） | 预览时 |
+| `m` | 去除背景（实验性） | 预览时（纯 CSS 模式需配置回退） |
 
 会在接下来的 2 节中说明。
 
 ### 单行多图布局
 
-在 `alt` 中添加 `r` 来将多张图片排在同一行。
+在控制串中添加 `r` 来将多张图片排在同一行。
 
 代码：
 
-`![25r](./assets/image.jpeg) ![25r](./assets/image.jpeg) ![25r](./assets/image.jpeg)`
+`![25%r](./assets/image.jpeg) ![25%r](./assets/image.jpeg) ![25%r](./assets/image.jpeg)`
 
 效果：
 
-![25r](./assets/image.jpeg) ![25r](./assets/image.jpeg) ![25r](./assets/image.jpeg)
+![25%r](./assets/image.jpeg) ![25%r](./assets/image.jpeg) ![25%r](./assets/image.jpeg)
 
 `r` 可以与其他效果字母组合使用：
 
 代码：
 
-`![25ri(.反相)](./assets/image.jpeg) ![25rI(.反转亮度)](./assets/image.jpeg) ![25rm(.去除背景)](./assets/image.jpeg)`
+`![25%ri|.反相](./assets/image.jpeg) ![25%rI|.反转亮度](./assets/image.jpeg) ![25%rm|.去除背景](./assets/image.jpeg)`
 
 效果：
 
-![25ri(.反相)](./assets/image.jpeg) ![25rI(.反转亮度（实验性）)](./assets/image.jpeg) ![25rm(.去除背景（实验性）)](./assets/image.jpeg)
+![25%ri|.反相](./assets/image.jpeg) ![25%rI|.反转亮度（实验性）](./assets/image.jpeg) ![25%rm|.去除背景（实验性）](./assets/image.jpeg)
 
 多行多图只需重复多组 `r`，每行一组：
 
 代码：
 
 ```markdown
-![40r](./assets/image.jpeg) ![40r](./assets/image.jpeg)
-![40r](./assets/image.jpeg) ![25r](./assets/image.jpeg)
+![40%r](./assets/image.jpeg) ![40%r](./assets/image.jpeg)
+![40%r](./assets/image.jpeg) ![25%r](./assets/image.jpeg)
 ```
 
 效果：
 
-![40r](./assets/image.jpeg) ![40r](./assets/image.jpeg)
-![40r](./assets/image.jpeg) ![25r](./assets/image.jpeg)
+![40%r](./assets/image.jpeg) ![40%r](./assets/image.jpeg)
+![40%r](./assets/image.jpeg) ![25%r](./assets/image.jpeg)
 
 ### 图片左右对齐
 
 代码：
 
-`![30R(.这是靠右对齐的图片)](./assets/image.jpeg)`
+`![30%R|.这是靠右对齐的图片](./assets/image.jpeg)`
 
 效果：
 
-![30R(.这是靠右对齐的图片)](./assets/image.jpeg)
+![30%R|.这是靠右对齐的图片](./assets/image.jpeg)
 
 ### 浮动排版
 
@@ -115,28 +124,28 @@
 代码：
 
 ```markdown
-![40Lf(.文字环绕图片)](./assets/image.jpeg)
+![40%Lf|.文字环绕图片](./assets/image.jpeg)
 啊啊啊啊啊宝宝你是一个……
 ```
 
 效果：
 
-![40Lf(.这是被文字环绕的图片)](./assets/image.jpeg)
+![40%Lf|.这是被文字环绕的图片](./assets/image.jpeg)
 啊啊啊啊啊啊宝宝你是一个香香软软甜甜糯糯蜂蜜奶油甜甜腻腻酥酥脆脆滑滑嫩嫩绵绵密密弹弹润润丝丝滑滑蓬蓬松松香香甜甜油油润润细细软软密密实实润润甜甜酥酥软软嫩嫩滑滑松松软软甜甜蜜蜜细细绵绵香香浓浓弹弹嫩嫩香香甜甜酸酸甜甜辣辣爽爽咸咸鲜鲜苦苦甘甘滑滑嫩嫩酥酥脆脆软软绵绵弹弹润润油油腻腻清清爽爽浓浓醇醇淡淡幽幽热热乎乎冰冰凉凉黏黏糊糊爽爽脆脆鲜鲜嫩嫩辣辣麻苦苦辣辣酱油醋橄榄油菜籽油葵花籽油鱼虾蟹龙虾贝类牛肉羊肉猪肉鸡肉鸭肉鹅肉火鸡肉香肠火腿培根肉丸汉堡热狗披萨寿司拉面咖喱炖肉烤肉烤鱼烤鸡沙拉汤粥芒果柠檬柚子百香果茼蒿芥蓝芹菜荠菜苋菜意式烤蔬菜配香草酱和橄榄油鲜美多汁香脆可口滑嫩浓郁醇厚甘甜爽口香辣酸甜苦辣咸香酥软糯滑爽劲道鲜美清香扑鼻诱人色泽鲜艳香气扑鼻口感丰富层次分明风味独特香气四溢回味无穷色香味俱佳口感细腻肉质鲜嫩色泽金黄外酥里嫩香气浓郁味道鲜美口感滑嫩味道醇厚味道独特风味独特香气诱人口感鲜美味道浓郁口感丰富味道鲜美味道醇厚味道独特香气扑鼻口感细腻肉质鲜嫩色泽金黄外酥里嫩香气浓郁味道鲜美口感滑嫩味道醇厚味道独特风味独特香气诱人口感鲜美味道浓郁口感丰富味道鲜美味道醇厚味道独特香气扑鼻的小蛋糕
 
 ### 图片标题
 
-当 `--enable-parser` 启用时，可以在 alt 中使用 `([.]title)` 来插入标题。开头的 `.` 会被替换成递增的 `图N:`。
+当 `--enable-parser` 启用时，在第二个 `|` 分隔段写图注，前导 `.` 会被替换成递增的 `图N:`。第三个分隔段为真实 alt。
 
 对于 `r` 样式的多图布局：
 - **子图标题**开头的 `.` 会被替换成 `(a)(b)(c)` 递增字母编号（按组内顺序，每组从 `(a)` 重新开始），**不占用全局图号**；
-- **整体标题**（写在第一个子图的 `([.]subfigure-title([.]figure-title))` 中）开头的 `.` 仍使用 `图N:` 全局编号。
+- **整体标题**（写在第一个子图的图注 `(.总标题)` 中）开头的 `.` 仍使用 `图N:` 全局编号。
 
-例如：`![40r(.子图A(.总标题))](assets/image.jpeg) ![25r(.子图B)](assets/image.jpeg)`
+例如：`![40%r|.子图A(.总标题)](assets/image.jpeg) ![25%r|.子图B](assets/image.jpeg)`
 
 效果：子图分别显示 `(a) 子图A`、`(b) 子图B`，整体标题显示 `图1: 总标题`。
 
-![40r(.子图A(.总标题))](assets/image.jpeg) ![25r(.子图B)](assets/image.jpeg)
+![40%r|.子图A(.总标题)](assets/image.jpeg) ![25%r|.子图B](assets/image.jpeg)
 
 ### 非 ASCII 文件名的路径修复
 
@@ -253,7 +262,7 @@ python mdcss.py --font-size 12px --main-css preview_theme/github-light.css --cod
 ```markdown
 |||-40
 
-![40r((.竖直居中的图片))](./assets/image.jpeg) ![40r](./assets/image.jpeg)
+![40%r|.竖直居中的图片](./assets/image.jpeg) ![40%r](./assets/image.jpeg)
 
 |||
 
@@ -265,7 +274,7 @@ python mdcss.py --font-size 12px --main-css preview_theme/github-light.css --cod
 
 |||-40
 
-![40r((.竖直居中的图片))](./assets/image.jpeg) ![40r](./assets/image.jpeg)
+![40%r|.竖直居中的图片](./assets/image.jpeg) ![40%r](./assets/image.jpeg)
 
 |||
 
