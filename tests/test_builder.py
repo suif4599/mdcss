@@ -99,6 +99,117 @@ class TestBuildStyleBlocks:
         combined = "\n".join(blocks)
         assert "overflow-x" in combined
 
+    def test_fallback_rules_injected_without_parser(self, sample_css: Path, codeblock_css: Path, tmp_path: Path) -> None:
+        from src.builder import build_style_blocks
+
+        blocks = build_style_blocks(
+            font_path=None,
+            main_css_path=sample_css,
+            codeblock_css_path=codeblock_css,
+            print_margin="5mm",
+            font_assets_dir=tmp_path / "fonts",
+            css_fallback_features=["r"],
+        )
+        combined = "\n".join(blocks)
+        assert 'img[alt^="30%r"]' in combined
+        assert 'img[alt*=' not in combined
+
+    def test_no_fallback_rules_with_parser(self, sample_css: Path, codeblock_css: Path, tmp_path: Path) -> None:
+        from src.builder import build_style_blocks
+
+        blocks = build_style_blocks(
+            font_path=None,
+            main_css_path=sample_css,
+            codeblock_css_path=codeblock_css,
+            print_margin="5mm",
+            font_assets_dir=tmp_path / "fonts",
+            enable_parser=True,
+            css_fallback_features=["r"],
+        )
+        combined = "\n".join(blocks)
+        assert 'img[alt^=' not in combined
+        assert 'img[alt*=' not in combined
+        assert "mdcss-inv" in combined
+
+
+class TestFallbackRules:
+    """build_fallback_rules() / count_fallback_rules() output."""
+
+    def test_default_generates_100_width_only_rules(self) -> None:
+        from src.builder import build_fallback_rules
+
+        rules = build_fallback_rules([])
+        assert len(rules) == 100
+        assert ":has(" not in "\n".join(rules)
+
+    def test_selectors_are_prefix_anchored(self) -> None:
+        from src.builder import build_fallback_rules
+
+        combined = "\n".join(build_fallback_rules(["r", "i"]))
+        assert 'img[alt^="' in combined
+        assert 'alt*=' not in combined
+
+    def test_no_width_prefix_collision(self) -> None:
+        from src.builder import build_fallback_rules
+
+        combined = "\n".join(build_fallback_rules([]))
+        assert 'img[alt^="10%"]' in combined
+        assert 'img[alt^="100%"]' in combined
+
+    def test_layout_effect_combos(self) -> None:
+        from src.builder import build_fallback_rules
+
+        combined = "\n".join(build_fallback_rules(["r", "i"]))
+        assert 'img[alt^="40%ri"]' in combined
+        assert 'img[alt^="40%r"]' in combined
+        assert 'img[alt^="40%i"]' in combined
+        assert ':has(> img[alt^="40%r"])' in combined
+        assert ':has(> img[alt^="40%ri"])' in combined
+        assert "filter: invert(85%);" in combined
+
+    def test_combo_after_width_only_in_source(self) -> None:
+        from src.builder import build_fallback_rules
+
+        rules = build_fallback_rules(["r"])
+        width_only = next(r for r in rules if 'img[alt^="40%"]' in r)
+        row = next(r for r in rules if 'img[alt^="40%r"]' in r)
+        assert rules.index(width_only) < rules.index(row)
+
+    def test_px_never_enumerated(self) -> None:
+        from src.builder import build_fallback_rules
+
+        combined = "\n".join(build_fallback_rules(["r", "L", "R", "Lf", "Rf", "i", "m"]))
+        assert "px" not in combined
+
+    def test_single_effect_hits_threshold_exactly(self) -> None:
+        from src.builder import count_fallback_rules
+
+        assert count_fallback_rules(["i"]) == 200
+
+    def test_count_matches_len(self) -> None:
+        from src.builder import build_fallback_rules, count_fallback_rules
+
+        assert count_fallback_rules(["r", "i"]) == len(build_fallback_rules(["r", "i"]))
+
+
+class TestFallbackPrintResets:
+    """build_fallback_print_resets() output."""
+
+    def test_empty_without_effects(self) -> None:
+        from src.builder import build_fallback_print_resets
+
+        assert build_fallback_print_resets([]) == ""
+        assert build_fallback_print_resets(["r"]) == ""
+
+    def test_effect_prefixes_enumerated(self) -> None:
+        from src.builder import build_fallback_print_resets
+
+        resets = build_fallback_print_resets(["r", "i"])
+        assert 'img[alt^="40%i"]' in resets
+        assert 'img[alt^="40%ri"]' in resets
+        assert "filter: none !important;" in resets
+        assert "mix-blend-mode: normal !important;" in resets
+
 
 class TestWriteOutput:
     """write_output() file generation."""

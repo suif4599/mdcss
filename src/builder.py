@@ -1,9 +1,103 @@
 import re
 from pathlib import Path
 
+from src.config import VALID_FALLBACK_EFFECTS, VALID_FALLBACK_LAYOUTS
 from src.font import resolve_font_family, resolve_font_path
 from src.print_style import generate_print_style
 from src.template import load_template
+
+RULE_COUNT_THRESHOLD = 200
+
+# Mirror the inline styles postparser_image.js produces for each layout/effect token.
+_FALLBACK_LAYOUT_PROPS: dict[str, tuple[str, ...]] = {
+    "r": ("display: inline-block !important;", "margin: 0 !important;", "vertical-align: middle !important;"),
+    "L": ("display: block !important;", "margin-left: 0 !important;", "margin-right: auto !important;"),
+    "R": ("display: block !important;", "margin-left: auto !important;", "margin-right: 0 !important;"),
+    "Lf": ("float: left;",),
+    "Rf": ("float: right;",),
+}
+_FALLBACK_EFFECT_PROPS: dict[str, str] = {
+    "i": "filter: invert(85%);",
+    "m": "mix-blend-mode: multiply;",
+}
+
+
+def _fallback_combos(features: list[str]):
+    """Yield (layout, effect) token pairs; width-only first so equal-specificity
+    ties are resolved by source order (more specific combos come later)."""
+    layouts = [t for t in VALID_FALLBACK_LAYOUTS if t in features]
+    effects = [t for t in VALID_FALLBACK_EFFECTS if t in features]
+    yield (None, None)
+    for eff in effects:
+        yield (None, eff)
+    for lay in layouts:
+        for eff in [None, *effects]:
+            yield (lay, eff)
+
+
+def _fallback_props(width: int, layout: str | None, effect: str | None) -> str:
+    props = [f"width: {width}% !important;", "height: auto;"]
+    if layout is None:
+        props += ["display: block;", "margin: 0 auto;"]
+    else:
+        props += list(_FALLBACK_LAYOUT_PROPS[layout])
+    if effect is not None:
+        props.append(_FALLBACK_EFFECT_PROPS[effect])
+    return " ".join(props)
+
+
+def build_fallback_rules(features: list[str]) -> list[str]:
+    """Generate exact prefix-anchored width rules for no-parser mode.
+
+    One self-contained rule per (percent width, layout, effect) combination,
+    e.g. ``img[alt^="40%ri"]``. The unit terminator makes prefixes exact:
+    ``^="40%"`` cannot match ``400%`` or ``40px``. When ``r`` is selected,
+    each r-combination also gets a parent-centering ``:has()`` rule.
+    """
+    rules: list[str] = []
+    for width in range(1, 101):
+        for layout, effect in _fallback_combos(features):
+            selector = f'img[alt^="{width}%{layout or ""}{effect or ""}"]'
+            rules.append(f"""
+  {selector} {{
+    {_fallback_props(width, layout, effect)}
+  }}
+""")
+        if "r" in features:
+            for effect in [None, *[t for t in VALID_FALLBACK_EFFECTS if t in features]]:
+                rules.append(f"""
+  :has(> img[alt^="{width}%r{effect or ""}"]) {{
+    text-align: center;
+  }}
+""")
+    return rules
+
+
+def build_fallback_print_resets(features: list[str]) -> str:
+    """Generate @media print resets for effect rules in no-parser mode.
+
+    Empty string when no effect tokens are configured.
+    """
+    effects = [t for t in VALID_FALLBACK_EFFECTS if t in features]
+    if not effects:
+        return ""
+    selectors = []
+    for width in range(1, 101):
+        for layout in [None, *[t for t in VALID_FALLBACK_LAYOUTS if t in features]]:
+            for effect in effects:
+                selectors.append(f'img[alt^="{width}%{layout or ""}{effect}"]')
+    body = "\n    ".join(selectors)
+    return f"""
+  /* Remove fallback invert and mix */
+  {body} {{
+    filter: none !important;
+    mix-blend-mode: normal !important;
+  }}
+"""
+
+
+def count_fallback_rules(features: list[str]) -> int:
+    return len(build_fallback_rules(features))
 
 
 def build_style_blocks(
@@ -16,6 +110,7 @@ def build_style_blocks(
     enable_parser: bool = False,
     enable_table_horizontal_scroll: bool = False,
     heading_underline: str = "",
+    css_fallback_features: list[str] | None = None,
 ) -> list[str]:
     blocks: list[str] = []
 
@@ -48,15 +143,7 @@ def build_style_blocks(
 """)
 
     if not enable_parser:
-        for i in range(1, 101):
-            blocks.append(f"""
-  img[alt*="{i}"] {{
-    width: {i}% !important;
-    height: auto;
-    display: block;
-    margin: 0 auto;
-  }}
-""")
+        blocks.extend(build_fallback_rules(css_fallback_features or []))
 
     blocks.append(
         load_template("css", "style.css")
@@ -103,6 +190,7 @@ def build_style_blocks(
             main_css_path,
             codeblock_css_path,
             print_margin=print_margin,
+            fallback_print_resets="" if enable_parser else build_fallback_print_resets(css_fallback_features or []),
         )
     )
 

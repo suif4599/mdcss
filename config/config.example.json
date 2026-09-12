@@ -23,7 +23,8 @@
     "enable_parser": false,
     "enable_header": false,
     "enable_table_horizontal_scroll": false,
-    "enable_table_caption": true
+    "enable_table_caption": true,
+    "css_fallback_features": []
   },
 
   "headings": {

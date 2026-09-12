@@ -1,7 +1,8 @@
 import argparse
 import json
+import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 HOME = Path.home()
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -93,6 +94,73 @@ def _serialize_path(value: Path | None) -> str | None:
     return str(p)
 
 
+def _css_fallback_features_default(cfg: dict[str, Any]) -> str:
+    """Read features.css_fallback_features from config as a comma-separated string."""
+    value = _nested_get(cfg, "features.css_fallback_features", "")
+    if isinstance(value, list):
+        return ",".join(str(v) for v in value)
+    return str(value or "")
+
+
+VALID_FALLBACK_LAYOUTS = ("r", "L", "R", "Lf", "Rf")
+VALID_FALLBACK_EFFECTS = ("i", "m")
+
+
+def parse_css_fallback_features(value: str | list[str] | None) -> list[str]:
+    """Parse and validate CSS fallback feature tokens.
+
+    Accepts a comma-separated string (CLI) or a list of strings (config.json).
+    Returns deduplicated tokens preserving order. Raises ValueError for tokens
+    that have no pure-CSS fallback coverage.
+    """
+    if value is None:
+        return []
+    tokens = value if isinstance(value, list) else str(value).split(",")
+    result: list[str] = []
+    for token in tokens:
+        token = token.strip()
+        if not token or token in result:
+            continue
+        if token not in VALID_FALLBACK_LAYOUTS and token not in VALID_FALLBACK_EFFECTS:
+            raise ValueError(
+                f"Unsupported css-fallback token: {token!r}. "
+                f"Valid layout tokens: {', '.join(VALID_FALLBACK_LAYOUTS)}; "
+                f"valid effect tokens: {', '.join(VALID_FALLBACK_EFFECTS)}. "
+                "('I' requires --enable-parser.)"
+            )
+        result.append(token)
+    return result
+
+
+def confirm_rule_count(
+    total: int,
+    assume_yes: bool,
+    threshold: int = 200,
+    isatty: Callable[[], bool] | None = None,
+    ask: Callable[[str], str] | None = None,
+) -> bool:
+    """Confirm generating `total` CSS fallback rules when above `threshold`.
+
+    --yes (assume_yes) always passes. Non-interactive stdin without --yes
+    fails loudly (SystemExit) instead of hanging unattended runs.
+    """
+    if total <= threshold or assume_yes:
+        return True
+    if isatty is None:
+        isatty = sys.stdin.isatty
+    if not isatty():
+        print(
+            f"Error: CSS fallback would generate {total} rules (> {threshold}). "
+            "Re-run with --yes to confirm.",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+    if ask is None:
+        ask = input
+    answer = ask(f"CSS fallback will generate {total} style rules (> {threshold}). Continue? [y/N] ")
+    return answer.strip().lower() in {"y", "yes"}
+
+
 def save_config(args: argparse.Namespace) -> None:
     """Write effective settings to config/config.json (nested group format)."""
     config_path = CONFIG_DIR / CONFIG_FILE_NAME
@@ -132,6 +200,10 @@ def save_config(args: argparse.Namespace) -> None:
         val = getattr(args, key, None)
         if val:
             _set(data, f"features.{key}", True)
+
+    # List-valued keys (always written so the key stays visible in config.json)
+    _set(data, "features.css_fallback_features",
+         parse_css_fallback_features(getattr(args, "css_fallback_features", None)))
 
     config_path.write_text(
         json.dumps(data, indent=2, ensure_ascii=False) + "\n",
@@ -290,6 +362,21 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
             "Comma-separated heading levels to show a underline below, e.g. \"1,2\" for h1 and h2. "
             "Leave empty to disable. Default: \"\" (disabled)."
         )
+    )
+    parser.add_argument(
+        "--css-fallback-features",
+        type=str,
+        default=_css_fallback_features_default(cfg),
+        help=(
+            "Comma-separated layout/effect tokens to cover with CSS fallback rules when "
+            "--enable-parser is off. Valid tokens: r, L, R, Lf, Rf, i, m. "
+            "Default: empty (width-only fallback, 100 rules). Ignored with --enable-parser."
+        ),
+    )
+    parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Assume yes at confirmation prompts (for unattended nix/systemd runs).",
     )
     parser.add_argument(
         "--output",

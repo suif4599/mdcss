@@ -147,6 +147,93 @@ class TestSaveConfig:
         assert loaded.get("features", {}).get("enable_parser") is True
 
 
+class TestCssFallbackFeatures:
+    """parse_css_fallback_features() and CLI wiring."""
+
+    def test_parse_string_trims_and_dedupes(self) -> None:
+        from src.config import parse_css_fallback_features
+
+        assert parse_css_fallback_features(" r, i ,r, ") == ["r", "i"]
+
+    def test_parse_list(self) -> None:
+        from src.config import parse_css_fallback_features
+
+        assert parse_css_fallback_features(["L", "Rf"]) == ["L", "Rf"]
+
+    def test_parse_none_and_empty(self) -> None:
+        from src.config import parse_css_fallback_features
+
+        assert parse_css_fallback_features(None) == []
+        assert parse_css_fallback_features("") == []
+
+    def test_invalid_token_raises(self) -> None:
+        from src.config import parse_css_fallback_features
+
+        with pytest.raises(ValueError, match="Unsupported css-fallback token"):
+            parse_css_fallback_features("r, I")
+        with pytest.raises(ValueError, match="Unsupported css-fallback token"):
+            parse_css_fallback_features("f")
+
+    def test_parser_has_new_args(self) -> None:
+        from src.config import build_parser
+
+        parser = build_parser({})
+        args = parser.parse_args([])
+        assert args.css_fallback_features == ""
+        assert args.yes is False
+
+    def test_config_default_reads_list(self) -> None:
+        from src.config import build_parser
+
+        parser = build_parser({"features": {"css_fallback_features": ["r", "i"]}})
+        args = parser.parse_args([])
+        assert args.css_fallback_features == "r,i"
+
+    def test_save_config_round_trip(self, isolated_config: Path) -> None:
+        from argparse import Namespace
+
+        from src.config import load_config, save_config
+
+        args = Namespace(css_fallback_features="r,i")
+        save_config(args)
+        loaded = load_config()
+        assert loaded.get("features", {}).get("css_fallback_features") == ["r", "i"]
+
+
+class TestConfirmRuleCount:
+    """confirm_rule_count() threshold behavior."""
+
+    def test_at_or_below_threshold_passes(self) -> None:
+        from src.config import confirm_rule_count
+
+        assert confirm_rule_count(100, False) is True
+        assert confirm_rule_count(200, False) is True
+
+    def test_assume_yes_passes(self) -> None:
+        from src.config import confirm_rule_count
+
+        assert confirm_rule_count(2400, True) is True
+
+    def test_tty_yes(self) -> None:
+        from src.config import confirm_rule_count
+
+        assert confirm_rule_count(400, False, isatty=lambda: True, ask=lambda p: "y\n") is True
+        assert confirm_rule_count(400, False, isatty=lambda: True, ask=lambda p: "Yes") is True
+
+    def test_tty_no(self) -> None:
+        from src.config import confirm_rule_count
+
+        assert confirm_rule_count(400, False, isatty=lambda: True, ask=lambda p: "") is False
+        assert confirm_rule_count(400, False, isatty=lambda: True, ask=lambda p: "n") is False
+
+    def test_non_tty_without_yes_exits(self) -> None:
+        from src.config import confirm_rule_count
+
+        with pytest.raises(SystemExit) as exc_info:
+            confirm_rule_count(400, False, isatty=lambda: False)
+        assert exc_info.value.code == 2
+
+
 class TestNestedGet:
     """_nested_get() helper."""
 

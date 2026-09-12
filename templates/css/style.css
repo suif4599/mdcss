@@ -1,49 +1,34 @@
-  img[alt$="r"]:not([alt*="L"]):not([alt*="R"]):not([alt*="f"]) {
-    display: inline-block !important;
-    vertical-align: middle;
+  /* Image effects — classes are added by parser.js (postparser_image.js).
+     In no-parser mode nothing adds these classes, so the rules stay inert. */
+  img.mdcss-inv {
+    filter: invert(85%);
   }
-  :has(> img[alt$="r"]:not([alt*="L"]):not([alt*="R"]):not([alt*="f"])) {
-    text-align: center;
+  img.mdcss-bright {
+    filter: url(#invert-brightness);
   }
-  img[alt*="L"]:not([alt*="f"]) {
-    display: block !important;
-    margin-left: 0 !important;
-    margin-right: auto !important;
+  img.mdcss-mix {
+    mix-blend-mode: multiply;
   }
-  img[alt*="R"]:not([alt*="f"]) {
-    display: block !important;
-    margin-left: auto !important;
-    margin-right: 0 !important;
-  }
-  img[alt*="Lf"] {
+  /* Float layout for bare (unwrapped) float images. */
+  img.mdcss-float-left {
     float: left;
   }
-  img[alt*="Rf"] {
+  img.mdcss-float-right {
     float: right;
   }
-  figure[alt*="Lf"] {
+  figure.mdcss-fig-float-left {
     float: left;
     margin: 0 1em 1em 0;
   }
-  figure[alt*="Rf"] {
+  figure.mdcss-fig-float-right {
     float: right;
     margin: 0 0 1em 1em;
   }
-  figure[alt*="Lf"] > img,
-  figure[alt*="Rf"] > img {
+  figure.mdcss-fig-float-left > img,
+  figure.mdcss-fig-float-right > img {
     float: none !important;
     display: block !important;
     margin: 0 !important;
-  }
-  /* Invert & Mix */
-  img[alt*="i"]:not([alt*="m"]):not([alt*="I"]) {
-    filter: invert(85%);
-  }
-  img[alt*="I"]:not([alt*="m"]):not([alt*="i"]) {
-    filter: url(#invert-brightness);
-  }
-  img[alt*="m"]:not([alt*="i"]):not([alt*="I"]) {
-    mix-blend-mode: multiply;
   }
   /* Keep headings and separators from wrapping beside floated images. */
   h1, h2, h3, h4, h5, h6, hr {
