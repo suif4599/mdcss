@@ -30,6 +30,22 @@ class TestBuildParserBlocks:
         _, html_yes = build_parser_blocks("none, number, number, none, latin, roman", enable_table_caption=True)
         assert len(html_yes) > len(html_no)
 
+    def test_lineshift_block_runs_before_indent(self) -> None:
+        from src.builder import build_parser_blocks
+
+        parser_blocks, _ = build_parser_blocks("none, number, number, none, latin, roman")
+        combined = "\n".join(parser_blocks)
+        # 行号账本块必须先于任何改变行数的 pre-parser（indent 以 has-indent 为标志）
+        assert combined.index("__MDCSS_LINE_SHIFTS__") < combined.index("has-indent")
+
+    def test_linerestore_runs_before_columnsync(self) -> None:
+        from src.builder import build_parser_blocks
+
+        _, html_blocks = build_parser_blocks("none, number, number, none, latin, roman")
+        combined = "\n".join(html_blocks)
+        # 行号还原块必须先于主列锚定块（linerestore 以 __mdcssOrigLine 为标志，columnsync 以 data-mdcss-cols 为标志）
+        assert combined.index("__mdcssOrigLine") < combined.index("data-mdcss-cols")
+
     def test_mappers_are_joined_in_output(self) -> None:
         from src.builder import build_parser_blocks
 

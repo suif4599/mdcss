@@ -205,6 +205,10 @@ def build_style_blocks(
 def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tuple[list[str], list[str]]:
     parser_blocks: list[str] = []
     html_blocks: list[str] = []
+    # Line-shift ledger (must run before any pre-parser that changes line count)
+    parser_blocks.append(
+        load_template("parser", "preparser_lineshift.js")
+    )
     # Paragraph indent
     parser_blocks.append(
         load_template("parser", "preparser_indent.js")
@@ -241,6 +245,14 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
     # Image title
     html_blocks.append(
         load_template("parser", "postparser_imagetitle.js")
+    )
+    # Line-number restore (must run before the column scroll-sync block)
+    html_blocks.append(
+        load_template("parser", "postparser_linerestore.js")
+    )
+    # Column scroll sync (main-column anchoring)
+    html_blocks.append(
+        load_template("parser", "postparser_columnsync.js")
     )
     # title prefix
     levels: list[str] = []
