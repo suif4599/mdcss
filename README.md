@@ -18,6 +18,7 @@
   - [代码块](#代码块)
   - [自动展开 detail](#自动展开-detail)
 - [5. 在 nix 中使用](#5-在nix中使用)
+- [6. inkstone 桥接](#6-inkstone-桥接)
 
 这是一个增强 VS Code 的 Markdown Preview Enhanced (MPE) 插件功能的脚本，旨在扩展 Markdown 文件的排版能力，让相对轻量的排版需求不必使用 $\LaTeX$。
 
@@ -244,6 +245,13 @@ inputs.mdcss.url = "github:suif4599/mdcss";
 
 其余选项（`autoCount`、`headingUnderline`、`enableTableCaption` 等）与第 3 节的 CLI 参数一一对应。
 
+PATH 中会安装 `mdcss-bridge` 命令——它就是 `mdcss.py`，只是把模块配置烘焙为默认参数（nix 安装方式下不存在 `config/config.json`，默认值即来源于此）；额外传入的 CLI 参数按 argparse 语义后出现者覆盖烘焙默认值：
+
+```bash
+mdcss-bridge  # 重新生成并热更新 crossnote 配置
+mdcss-bridge --emit-inkstone ~/inkstone  # 生成 inkstone 桥接产物
+```
+
 部署方式说明：
 
 - 构建产物 `style.less` / `parser.js` / `head.html` / `fonts/` 由 oneshot 服务 `mdcss-deploy.service` 在登录时以普通可写文件部署到 crossnote 的配置目录。
@@ -252,13 +260,16 @@ inputs.mdcss.url = "github:suif4599/mdcss";
 
 ## 6. inkstone 桥接
 
-mdcss 可以为 [inkstone](https://github.com/shuaiplus/inkstone)（基于 markdown-it 的浏览器端笔记应用）生成同一套语法扩展的桥接产物：
+> [!TIP]
+> mdcss 可以为 [inkstone](https://github.com/shuaiplus/inkstone) 生成同一套语法扩展的桥接产物
+> 
+> 如果需要该功能，请手动 cherry-pick 这个 [fork](https://github.com/suif4599/inkstone.git) 中 tag `mdcss-integration` 指向的 commit
 
 ```bash
-python mdcss.py --emit-inkstone <inkstone-repo>/src/client
+python mdcss.py --emit-inkstone <inkstone-repo>
 ```
 
-产物（提交进 inkstone 仓库）：
+产物：
 
 | 文件 | 落点 | 内容 |
 | --- | --- | --- |
@@ -270,5 +281,3 @@ python mdcss.py --emit-inkstone <inkstone-repo>/src/client
 - 图片效果（`i` 反相 / `I` 亮度反转 / `m` 去背景）统一改为跟随浏览器主题：仅 `:root[data-theme='dark']` 下生效（MPE 中是「预览生效、`@media print` 重置」）。
 - 行号账本（`data-source-line` 重映射）移植为 inkstone 的 `data-line` 属性名。
 - 不桥接：字体、打印/导出样式、主题 CSS、head.html、`@import` PDF、uri 双重编码修复
-
-修改模板或片段后，在 mdcss 仓库重新运行上述命令即可再生成
