@@ -249,3 +249,26 @@ inputs.mdcss.url = "github:suif4599/mdcss";
 - 构建产物 `style.less` / `parser.js` / `head.html` / `fonts/` 由 oneshot 服务 `mdcss-deploy.service` 在登录时以普通可写文件部署到 crossnote 的配置目录。
 - 部署目标与 MPE 扩展自身的解析逻辑一致：设置了 `XDG_CONFIG_HOME` 时为 `$XDG_CONFIG_HOME/crossnote`，否则为 `~/.local/state/crossnote`。注意扩展在 Linux 下**不会**读取 `~/.config/crossnote`（除非通过 `XDG_CONFIG_HOME` 指过去）。
 - 扩展会在同一目录维护自己的 `config.js`（katex/mathjax/mermaid 等设置），部署脚本只替换上述四个受管条目，不会触碰它；也因此不能使用指向 nix store 的只读符号链接（`xdg.configFile`）来部署。
+
+## 6. inkstone 桥接
+
+mdcss 可以为 [inkstone](https://github.com/shuaiplus/inkstone)（基于 markdown-it 的浏览器端笔记应用）生成同一套语法扩展的桥接产物：
+
+```bash
+python mdcss.py --emit-inkstone <inkstone-repo>/src/client
+```
+
+产物（提交进 inkstone 仓库）：
+
+| 文件 | 落点 | 内容 |
+| --- | --- | --- |
+| `mdcss-bridge.js` | `src/client/lib/markdown/` | ESM 模块，导出 `mdcssPre(source)` / `mdcssPost(html)`，由 inkstone 的 `renderMarkdown` 在 markdown-it 渲染前后调用 |
+| `mdcss.css` | `src/client/styles/` | 可移植的排版 CSS（`.ink-prose` 作用域），在 `app.css` 中 `@import` |
+
+与 MPE 输出的差异：
+
+- 图片效果（`i` 反相 / `I` 亮度反转 / `m` 去背景）统一改为跟随浏览器主题：仅 `:root[data-theme='dark']` 下生效（MPE 中是「预览生效、`@media print` 重置」）。
+- 行号账本（`data-source-line` 重映射）移植为 inkstone 的 `data-line` 属性名。
+- 不桥接：字体、打印/导出样式、主题 CSS、head.html、`@import` PDF、uri 双重编码修复
+
+修改模板或片段后，在 mdcss 仓库重新运行上述命令即可再生成

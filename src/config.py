@@ -397,6 +397,17 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
         help="Output crossnote style directory (style.less and optionally parser.js will be written here).",
     )
     parser.add_argument(
+        "--emit-inkstone",
+        type=Path,
+        default=_resolve_path(_nested_get(cfg, "paths.emit_inkstone")),
+        help=(
+            "Generate the Inkstone bridge artifacts and exit: "
+            "mdcss-bridge.js into <dir>/lib/markdown/ and mdcss.css into <dir>/styles/, "
+            "where <dir> is an Inkstone src/client directory. "
+            "Reuses --auto-count and --enable-table-caption; MPE outputs are not generated."
+        ),
+    )
+    parser.add_argument(
         "--save-config",
         action="store_true",
         help="Save the effective settings (after CLI and config merge) to config.json and exit.",

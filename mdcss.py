@@ -15,12 +15,21 @@ from src.builder import (
     count_fallback_rules,
     RULE_COUNT_THRESHOLD,
 )
+from src.inkstone import write_inkstone_output
 
 
 def main() -> None:
     config = load_config()
     parser = build_parser(config)
     args = parser.parse_args()
+
+    if args.emit_inkstone is not None:
+        write_inkstone_output(
+            args.emit_inkstone.expanduser().resolve(),
+            mappers=args.auto_count,
+            enable_table_caption=args.enable_table_caption,
+        )
+        return
 
     if args.main_css is None:
         parser.error("--main-css is required (set it via CLI or 'main_css' in config.json)")

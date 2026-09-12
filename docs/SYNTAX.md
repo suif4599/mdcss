@@ -141,11 +141,11 @@
 - **子图标题**开头的 `.` 会被替换成 `(a)(b)(c)` 递增字母编号（按组内顺序，每组从 `(a)` 重新开始），**不占用全局图号**；
 - **整体标题**（写在第一个子图的图注 `(.总标题)` 中）开头的 `.` 仍使用 `图N:` 全局编号。
 
-例如：`![40%r|.子图A(.总标题)](assets/image.jpeg) ![25%r|.子图B](assets/image.jpeg)`
+例如：`![40%r|.子图A(.总标题)](./assets/image.jpeg) ![25%r|.子图B](./assets/image.jpeg)`
 
 效果：子图分别显示 `(a) 子图A`、`(b) 子图B`，整体标题显示 `图1: 总标题`。
 
-![40%r|.子图A(.总标题)](assets/image.jpeg) ![25%r|.子图B](assets/image.jpeg)
+![40%r|.子图A(.总标题)](./assets/image.jpeg) ![25%r|.子图B](./assets/image.jpeg)
 
 ### 非 ASCII 文件名的路径修复
 

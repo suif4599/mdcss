@@ -147,16 +147,20 @@ function mergeColumnSpec(markdown) {
                     mainIdx = 0;
                 }
                 const cols = orderedSpecs.map(({ spec }) => `minmax(auto, ${spec.width})`).join(' ');
+                // data-mdcss-cols / data-mdcss-col-align duplicate the layout
+                // values that live in inline styles, so consumers that strip
+                // inline styles (e.g. Inkstone's DOMPurify) can rebuild them
+                // in postparser_columnstyle.js after sanitization.
                 let outerDiv = `
 
-<div style="display: grid; grid-template-columns: ${cols}; gap: 20px; width: 100%; min-width: 0; box-sizing: border-box;" data-mdcss-cols>
+<div style="display: grid; grid-template-columns: ${cols}; gap: 20px; width: 100%; min-width: 0; box-sizing: border-box;" data-mdcss-cols="${cols}">
 
 `;
                 for (let c = 0; c < orderedSpecs.length; c++) {
                 const { index, spec: s } = orderedSpecs[c];
                 const innerDiv = `
 
-<div style="display: flex; flex-direction: column; justify-content: ${s.align}; min-width: 0; max-width: 100%;" data-mdcss-col="${c === mainIdx ? "main" : "side"}">
+<div style="display: flex; flex-direction: column; justify-content: ${s.align}; min-width: 0; max-width: 100%;" data-mdcss-col="${c === mainIdx ? "main" : "side"}" data-mdcss-col-align="${s.align}">
 
 `;
                 parts[index] = outerDiv + innerDiv;

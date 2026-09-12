@@ -202,6 +202,23 @@ def build_style_blocks(
     return blocks
 
 
+VALID_MAPPERS = {"roman", "romanUpper", "latin", "latinUpper", "chinese", "number", "none"}
+
+
+def parse_mappers(mappers: str) -> list[str]:
+    """Validate a --auto-count value and expand it to exactly 6 levels."""
+    levels: list[str] = []
+    for i in re.split(r"\s*,\s*", mappers.strip()):
+        if i not in VALID_MAPPERS:
+            raise ValueError(f"Unsupported mapper: {i}, only <roman|romanUpper|latin|latinUpper|chinese|number|none> are supported.")
+        levels.append(i)
+    while len(levels) < 6:
+        levels.append("none")
+    if len(levels) > 6:
+        raise ValueError(f"Too many mappers: {len(levels)}, at most 6 levels are supported.")
+    return levels
+
+
 def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tuple[list[str], list[str]]:
     parser_blocks: list[str] = []
     html_blocks: list[str] = []
@@ -255,18 +272,9 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
         load_template("parser", "postparser_columnsync.js")
     )
     # title prefix
-    levels: list[str] = []
-    for i in re.split(r"\s*,\s*", mappers.strip()):
-        if i not in {"roman", "romanUpper", "latin", "latinUpper", "chinese", "number", "none"}:
-            raise ValueError(f"Unsupported mapper: {i}, only <roman|romanUpper|latin|latinUpper|chinese|number|none> are supported.")
-        levels.append(i)
-    while len(levels) < 6:
-        levels.append("none")
-    if len(levels) > 6:
-        raise ValueError(f"Too many mappers: {len(levels)}, at most 6 levels are supported.")
     parser_blocks.append(
         load_template("parser", "preparser_titleprefix.js")
-        .replace("@MAPPER_PLACEHOLDER@", ", ".join(levels))
+        .replace("@MAPPER_PLACEHOLDER@", ", ".join(parse_mappers(mappers)))
     )
     # Multicolunn
     parser_blocks.append(

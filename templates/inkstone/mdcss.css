@@ -1,0 +1,63 @@
+:root[data-theme='dark'] .ink-prose img.mdcss-inv {
+  filter: invert(85%);
+}
+:root[data-theme='dark'] .ink-prose img.mdcss-bright {
+  filter: url(#invert-brightness);
+}
+:root[data-theme='dark'] .ink-prose img.mdcss-mix {
+  mix-blend-mode: multiply;
+}
+.ink-prose img.mdcss-float-left {
+  float: left;
+}
+.ink-prose img.mdcss-float-right {
+  float: right;
+}
+.ink-prose figure.mdcss-fig-float-left {
+  float: left;
+  margin: 0 1em 1em 0;
+}
+.ink-prose figure.mdcss-fig-float-right {
+  float: right;
+  margin: 0 0 1em 1em;
+}
+.ink-prose figure.mdcss-fig-float-left > img,
+.ink-prose figure.mdcss-fig-float-right > img {
+  float: none !important;
+  display: block !important;
+  margin: 0 !important;
+}
+.ink-prose h1,
+.ink-prose h2,
+.ink-prose h3,
+.ink-prose h4,
+.ink-prose h5,
+.ink-prose h6,
+.ink-prose hr {
+  clear: both;
+}
+.ink-prose tbody tr:nth-child(2n):not(:hover) {
+  background-color: rgba(127, 127, 127, 0.07);
+}
+.ink-prose .has-indent p {
+  text-indent: 2em;
+}
+.ink-prose .has-indent li > p {
+  text-indent: 0;
+}
+.ink-prose table {
+  display: table !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
+  table-layout: auto !important;
+  overflow-x: visible !important;
+  font-size: inherit !important;
+}
+.ink-prose th,
+.ink-prose td {
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  font-size: inherit !important;
+}

@@ -5,13 +5,18 @@
 // This regex handles:
 //   - Direct adjacency: <p>Table: title</p>\n<table>...</table>
 //   - With wrapper div: <p>Table: title</p>\n<div ...>\n<table>...</table>\n</div>
+//     (the wrapper open/close tags are captured together with the table and
+//     re-emitted INSIDE the figure, so wrappers like Inkstone's
+//     ".table-wrap" — and any data-* attributes on them — survive)
 //   - Whitespace-only gap between </p> and the (optional) wrapper / table
 //
-// The `([\s\S]*?)` in the middle is guarded by a check that it doesn't
-// contain another <table> — that prevents pairing the wrong caption
-// with a table when there are multiple tables in the document.
+// The wrapper alternative is all-or-nothing (div open + table + div close)
+// so a bare table is never paired with someone else's stray </div>, and it
+// must not be an mdcss column div (data-mdcss-col*), otherwise a "Table:"
+// line right before a column block that starts with a table would swallow
+// the column's opening div.
 html = html.replace(
-    /<p[^>]*>\s*Table:\s*(.*?)<\/p>\s*(<table[\s\S]*?<\/table>)/gi,
+    /<p[^>]*>\s*Table:\s*(.*?)<\/p>\s*(<div(?![^>]*data-mdcss-col)[^>]*>\s*<table[\s\S]*?<\/table>\s*<\/div>|<table[\s\S]*?<\/table>)/gi,
     (_match, caption, tableHtml) => {
         caption = caption.trim();
         if (!caption) return _match;
