@@ -115,6 +115,17 @@
   html body table tbody tr:nth-child(2n) td {
     background: #f2f2f2 !important;
   }
+  /* Zebra strategies from postparser_zebra.js: auto tables stripe by computed
+     bands (merged cells keep one color across their span), nozebra tables have
+     no body stripes. Both rules must come after the nth-child rule above:
+     suppression wins on specificity, the band rule ties and wins on order. */
+  html body table.mdcss-auto tbody tr:nth-child(2n) td,
+  html body table.mdcss-nozebra tbody tr:nth-child(2n) td {
+    background: white !important;
+  }
+  html body table.mdcss-auto tbody tr.mdcss-z td {
+    background: #f2f2f2 !important;
+  }
   html body table thead th {
     background: #e8e8e8 !important;
   }

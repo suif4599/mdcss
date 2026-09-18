@@ -46,6 +46,8 @@ class TestBuildInkstoneBridge:
         assert pre.index("__MDCSS_LINE_SHIFTS__") < pre.index("has-indent")
         assert pre.index("MDCSS_FENCE_TOKEN") < pre.index("mergeColumnSpec")
         assert pre.index("MDCSS_FENCE_TOKEN") < pre.index("preprocessMarkdown")
+        # zebra tag normalization after fence extraction, before the rewriters
+        assert pre.index("MDCSS_FENCE_TOKEN") < pre.index("mode.toLowerCase()")
         # fence restore is the last pre fragment, so its lookup of the
         # extracted blocks comes after the column and title rewriters
         assert pre.rindex("__MDCSS_FENCED_BLOCKS__") > pre.index("mergeColumnSpec")
@@ -57,7 +59,10 @@ class TestBuildInkstoneBridge:
         bridge = build_inkstone_bridge("none, chinese, number, number, latin, roman")
         post = bridge[bridge.index("mdcssPost"):]
         assert post.index("MDCSS_CONTROL_RE") < post.index("cr_regex")
-        assert post.index("cr_regex") < post.index("TABLE_COUNT_PLACEHOLDER")
+        # zebra strategies read rowspan attrs (table.js) and strip the tag
+        # before the caption wrap rewrites the "Table:" paragraph
+        assert post.index("cr_regex") < post.index("MDCSS_ZEBRA_TAG_RE")
+        assert post.index("MDCSS_ZEBRA_TAG_RE") < post.index("TABLE_COUNT_PLACEHOLDER")
         assert post.index("TABLE_COUNT_PLACEHOLDER") < post.index("mdcss-fig-row")
         # column style rebuild and svg filter append come after image/figure
         # work, and line-number restore runs last
@@ -126,6 +131,12 @@ class TestInkstoneCss:
 
     def test_zebra_avoids_hover_conflict(self) -> None:
         assert "tbody tr:nth-child(2n):not(:hover)" in self.css()
+
+    def test_zebra_strategy_rules_present(self) -> None:
+        css = self.css()
+        # auto 条带规则让位于 hover；nth-child 抑制同样带 :not(:hover)
+        assert ".ink-prose table.mdcss-auto tbody tr:not(:hover).mdcss-z" in css
+        assert ".ink-prose table.mdcss-nozebra tbody tr:nth-child(2n):not(:hover)" in css
 
     def test_all_rules_scoped_to_ink_prose(self) -> None:
         css = self.css()

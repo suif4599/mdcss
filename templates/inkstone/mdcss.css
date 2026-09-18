@@ -39,6 +39,13 @@
 .ink-prose tbody tr:nth-child(2n):not(:hover) {
   background-color: rgba(127, 127, 127, 0.07);
 }
+.ink-prose table.mdcss-auto tbody tr:nth-child(2n):not(:hover),
+.ink-prose table.mdcss-nozebra tbody tr:nth-child(2n):not(:hover) {
+  background-color: transparent;
+}
+.ink-prose table.mdcss-auto tbody tr:not(:hover).mdcss-z {
+  background-color: rgba(127, 127, 127, 0.07);
+}
 .ink-prose .has-indent p {
   text-indent: 2em;
 }

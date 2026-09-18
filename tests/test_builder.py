@@ -38,6 +38,23 @@ class TestBuildParserBlocks:
         # 行号账本块必须先于任何改变行数的 pre-parser（indent 以 has-indent 为标志）
         assert combined.index("__MDCSS_LINE_SHIFTS__") < combined.index("has-indent")
 
+    def test_zebra_pre_fragment_runs_after_fence_extract(self) -> None:
+        from src.builder import build_parser_blocks
+
+        parser_blocks, _ = build_parser_blocks("none, number, number, none, latin, roman")
+        combined = "\n".join(parser_blocks)
+        # 标签归一化必须在围栏提取之后（代码块内的标签行不动），且在 markdown 渲染前完成
+        assert combined.index("MDCSS_FENCE_TOKEN") < combined.index("mode.toLowerCase()")
+
+    def test_zebra_fragment_runs_between_table_and_caption(self) -> None:
+        from src.builder import build_parser_blocks
+
+        _, html_blocks = build_parser_blocks("none, number, number, none, latin, roman")
+        combined = "\n".join(html_blocks)
+        # 斑马纹策略块必须在合并属性之后（读取 rowspan）、标题包装之前（剥掉标签文本）
+        assert combined.index("cr_regex") < combined.index("MDCSS_ZEBRA_TAG_RE")
+        assert combined.index("MDCSS_ZEBRA_TAG_RE") < combined.index("TABLE_COUNT_PLACEHOLDER")
+
     def test_linerestore_runs_before_columnsync(self) -> None:
         from src.builder import build_parser_blocks
 
@@ -122,6 +139,21 @@ class TestBuildStyleBlocks:
         )
         combined = "\n".join(blocks)
         assert "overflow-x" in combined
+
+    def test_zebra_strategy_rules_present(self, sample_css: Path, codeblock_css: Path, tmp_path: Path) -> None:
+        from src.builder import build_style_blocks
+
+        blocks = build_style_blocks(
+            font_path=None,
+            main_css_path=sample_css,
+            codeblock_css_path=codeblock_css,
+            print_margin="5mm",
+            font_assets_dir=tmp_path / "fonts",
+        )
+        combined = "\n".join(blocks)
+        # auto 条带规则 + nth-child 抑制规则（zebra/nozebra 两档共用）
+        assert "table.mdcss-auto tbody tr.mdcss-z" in combined
+        assert "table.mdcss-nozebra tbody tr:nth-child(2n)" in combined
 
     def test_fallback_rules_injected_without_parser(self, sample_css: Path, codeblock_css: Path, tmp_path: Path) -> None:
         from src.builder import build_style_blocks

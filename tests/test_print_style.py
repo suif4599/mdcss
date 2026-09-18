@@ -32,6 +32,17 @@ class TestGeneratePrintStyle:
         result = generate_print_style(sample_css, codeblock_css, print_margin="10mm")
         assert "10mm" in result
 
+    def test_zebra_strategy_rules_present(self, sample_css: Path, codeblock_css: Path) -> None:
+        from src.print_style import generate_print_style
+
+        result = generate_print_style(sample_css, codeblock_css, print_margin="5mm")
+        # auto 条带打印实色 + nth-child 抑制（zebra/nozebra 共用），抑制在前、条带在后靠顺序取胜
+        assert "html body table.mdcss-auto tbody tr.mdcss-z td" in result
+        assert "html body table.mdcss-nozebra tbody tr:nth-child(2n) td" in result
+        assert result.index("html body table.mdcss-auto tbody tr:nth-child(2n) td") < result.index(
+            "html body table.mdcss-auto tbody tr.mdcss-z td"
+        )
+
     def test_missing_css_warns(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
         from src.print_style import generate_print_style
 

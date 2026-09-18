@@ -238,6 +238,10 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
     parser_blocks.append(
         load_template("parser", "preparser_fence_extract.js")
     )
+    # Zebra strategy tag normalization (after fence extract, before markdown-it)
+    parser_blocks.append(
+        load_template("parser", "preparser_zebra.js")
+    )
     # PDF center
     parser_blocks.append(
         load_template("parser", "preparser_pdf.js")
@@ -253,6 +257,10 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
     # Table
     html_blocks.append(
         load_template("parser", "postparser_table.js")
+    )
+    # Table zebra strategies (after table merges, before the caption wrap)
+    html_blocks.append(
+        load_template("parser", "postparser_zebra.js")
     )
     # Table caption
     if enable_table_caption:

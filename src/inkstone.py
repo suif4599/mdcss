@@ -38,6 +38,7 @@ PRE_FRAGMENTS = (
     "preparser_lineshift.js",
     "preparser_indent.js",
     "preparser_fence_extract.js",
+    "preparser_zebra.js",
     "preparser_titleprefix.js",
     "preparser_column.js",
     "preparser_fence_restore.js",
@@ -51,6 +52,7 @@ PRE_FRAGMENTS = (
 POST_FRAGMENTS = (
     "postparser_image.js",
     "postparser_table.js",
+    "postparser_zebra.js",
     "postparser_tablecaption.js",
     "postparser_imagetitle.js",
     "postparser_columnstyle.js",
