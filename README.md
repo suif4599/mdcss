@@ -263,8 +263,10 @@ mdcss-bridge --emit-inkstone ~/inkstone  # 生成 inkstone 桥接产物
 
 > [!TIP]
 > mdcss 可以为 [inkstone](https://github.com/shuaiplus/inkstone) 生成同一套语法扩展的桥接产物
-> 
-> 如果需要该功能，请手动 cherry-pick 这个 [fork](https://github.com/suif4599/inkstone.git) 中 tag `mdcss-integration` 指向的 commit
+>
+> 如果需要该功能，直接使用 [fork](https://github.com/suif4599/inkstone.git) 的 `mdcss-bridge` 分支
+>
+> 该分支跟随上游通过 `rebase` 更新
 
 ```bash
 python mdcss.py --emit-inkstone <inkstone-repo>
