@@ -138,6 +138,14 @@ class TestInkstoneCss:
         assert ".ink-prose table.mdcss-auto tbody tr:not(:hover).mdcss-z" in css
         assert ".ink-prose table.mdcss-nozebra tbody tr:nth-child(2n):not(:hover)" in css
 
+    def test_zebra_uses_host_stripe_token(self) -> None:
+        # the host palette owns the stripe color; keep the neutral fallback for hosts without the token
+        assert "var(--tbl-stripe, rgba(127, 127, 127, 0.07))" in self.css()
+
+    def test_table_base_uses_host_token(self) -> None:
+        # table body fill comes from the host too; token-less hosts get no fill (original behavior)
+        assert "var(--tbl-bg, transparent)" in self.css()
+
     def test_all_rules_scoped_to_ink_prose(self) -> None:
         css = self.css()
         for rule in css.split("}"):
