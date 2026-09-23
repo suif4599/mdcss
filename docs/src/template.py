@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import Any, Literal
 
-SCRIPT_DIR = Path(__file__).resolve().parent.parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent.parent
 TEMPLATE_DIR = SCRIPT_DIR / "templates"
 
 
@@ -11,7 +11,6 @@ def load_template(dir_: Literal["css", "parser", "docheader", "inkstone"], name:
     if not file.exists():
         raise FileNotFoundError(f"Template not found: {file}")
     content = file.read_text(encoding="utf-8")
-    # <variable>name</variable> in template will be replaced with kwargs["name"] value.
     for key, value in kwargs.items():
         placeholder = f"<variable>{key}</variable>"
         if not placeholder in content:

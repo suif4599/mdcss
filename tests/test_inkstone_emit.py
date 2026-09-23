@@ -31,10 +31,10 @@ class TestBuildInkstoneBridge:
         assert "@import" not in bridge
         assert "%25" not in bridge
         assert "containerRe" not in bridge
-        # the invert-brightness filter element exists exactly once (appended
-        # by postparser_svgfilter; the pre-pass variant is excluded — the
-        # second string occurrence is the guard in svgfilter itself)
-        assert bridge.count('<filter id="invert-brightness"') == 1
+        # the I/M effects are runtime-canvas only; no SVG filter defs remain
+        assert "<filter" not in bridge
+        assert "url(#invert-brightness" not in bridge
+        assert "url(#matte-brightness" not in bridge
 
     def test_pre_fragment_order(self) -> None:
         from src.inkstone import build_inkstone_bridge
@@ -64,10 +64,9 @@ class TestBuildInkstoneBridge:
         assert post.index("cr_regex") < post.index("MDCSS_ZEBRA_TAG_RE")
         assert post.index("MDCSS_ZEBRA_TAG_RE") < post.index("TABLE_COUNT_PLACEHOLDER")
         assert post.index("TABLE_COUNT_PLACEHOLDER") < post.index("mdcss-fig-row")
-        # column style rebuild and svg filter append come after image/figure
-        # work, and line-number restore runs last
-        assert post.index("data-mdcss-col-align=") < post.index("invert-brightness")
-        assert post.rindex("__mdcssOrigLine") > post.index("invert-brightness")
+        # column style rebuild comes after image/figure work, and the
+        # line-number restore runs last
+        assert post.index("data-mdcss-col-align=") < post.rindex("__mdcssOrigLine")
 
     def test_linerestore_uses_inkstone_attribute(self) -> None:
         from src.inkstone import build_inkstone_bridge
@@ -112,8 +111,15 @@ class TestInkstoneCss:
     def test_effects_gated_on_dark_theme(self) -> None:
         css = self.css()
         assert ":root[data-theme='dark'] .ink-prose img.mdcss-inv" in css
-        assert ":root[data-theme='dark'] .ink-prose img.mdcss-bright" in css
         assert ":root[data-theme='dark'] .ink-prose img.mdcss-mix" in css
+        # I/M are runtime-canvas effects and carry no filter rule; the matte
+        # rule only drops the host image backdrop (and frame) so the alpha
+        # knocked out by the runtime actually shows through
+        assert "mdcss-bright" not in css
+        assert ":root[data-theme='dark'] .ink-prose img.mdcss-matte," in css
+        assert ":root[data-theme='dark'] .ink-prose img[class*='mdcss-matte-']" in css
+        assert "background: transparent" in css
+        assert "border-color: transparent" in css
 
     def test_no_comments(self) -> None:
         assert "/*" not in self.css()
@@ -153,6 +159,49 @@ class TestInkstoneCss:
                 assert ".ink-prose" in rule, rule
 
 
+class TestBuildInkstoneRuntime:
+    """build_inkstone_runtime() output."""
+
+    def runtime(self, invert_bounds=(10, 250), matte_bounds=(5, 240)) -> str:
+        from src.inkstone import build_inkstone_runtime
+
+        return build_inkstone_runtime(invert_bounds, matte_bounds)
+
+    def test_injects_theme_gate_and_bounds(self) -> None:
+        runtime = self.runtime()
+        assert "var THEME_GATED = true;" in runtime
+        assert "var INVERT_BOUNDS = [10, 250];" in runtime
+        assert "var MATTE_BOUNDS = [5, 240];" in runtime
+
+    def test_default_bounds(self) -> None:
+        runtime = self.runtime(
+            invert_bounds=(32, 239), matte_bounds=(64, 239)
+        )
+        assert "var INVERT_BOUNDS = [32, 239];" in runtime
+        assert "var MATTE_BOUNDS = [64, 239];" in runtime
+
+    def test_no_comments_in_emitted_code(self) -> None:
+        # stronger than Inkstone's comment policy: this file has no URL or
+        # division that could leave a "//" behind, so none may survive
+        runtime = self.runtime()
+        assert "//" not in runtime
+        assert "/*" not in runtime
+        assert "*/" not in runtime
+
+    def test_self_booting_and_theme_aware(self) -> None:
+        runtime = self.runtime()
+        assert "MutationObserver" in runtime
+        assert "attributeFilter: ['data-theme']" in runtime
+        assert "DOMContentLoaded" in runtime
+
+    def test_keeps_effect_class_for_theme_restore(self) -> None:
+        runtime = self.runtime()
+        # the effect class survives the src swap so a light-theme restore
+        # can re-derive the effect on the next dark flip
+        assert "classList.remove" not in runtime
+        assert "mdcssSrc" in runtime
+
+
 class TestWriteInkstoneOutput:
     """write_inkstone_output() file generation."""
 
@@ -163,6 +212,18 @@ class TestWriteInkstoneOutput:
         write_inkstone_output(repo, "none, chinese, number, number, latin, roman")
         assert (repo / "src" / "client" / "lib" / "markdown" / "mdcss-bridge.js").exists()
         assert (repo / "src" / "client" / "styles" / "mdcss.css").exists()
+
+    def test_writes_runtime_artifacts_into_repo_tree(self, tmp_path: Path) -> None:
+        from src.inkstone import write_inkstone_output
+
+        repo = tmp_path / "inkstone"
+        write_inkstone_output(repo, "none, chinese, number, number, latin, roman")
+        runtime = repo / "src" / "client" / "lib" / "markdown" / "mdcss-runtime.js"
+        runtime_dts = repo / "src" / "client" / "lib" / "markdown" / "mdcss-runtime.d.ts"
+        assert runtime.exists()
+        assert "THEME_GATED = true" in runtime.read_text(encoding="utf-8")
+        assert runtime_dts.exists()
+        assert runtime_dts.read_text(encoding="utf-8") == "export {};\n"
 
 
 class TestParseMappers:

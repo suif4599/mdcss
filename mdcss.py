@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+# The package lives at docs/src/ (repo restructure in flight): make the
+# entry point runnable from anywhere — nix derivations, the mdcss-bridge
+# wrapper, and a bare `python mdcss.py` — without external PYTHONPATH.
+sys.path.insert(0, str(Path(__file__).resolve().parent / "docs"))
+
 from src.config import (
     build_parser,
     confirm_rule_count,
@@ -7,11 +15,13 @@ from src.config import (
     save_config,
     resolve_extension_dir,
 )
+from src.filters import parse_bounds
 from src.builder import (
     build_style_blocks,
     build_parser_blocks,
     write_output,
     load_template,
+    inject_image_effects_defaults,
     count_fallback_rules,
     RULE_COUNT_THRESHOLD,
 )
@@ -23,11 +33,19 @@ def main() -> None:
     parser = build_parser(config)
     args = parser.parse_args()
 
+    try:
+        invert_bounds = parse_bounds(args.invert_bounds, "invert bounds")
+        matte_bounds = parse_bounds(args.matte_bounds, "matte bounds")
+    except ValueError as exc:
+        parser.error(str(exc))
+
     if args.emit_inkstone is not None:
         write_inkstone_output(
             args.emit_inkstone.expanduser().resolve(),
             mappers=args.auto_count,
             enable_table_caption=args.enable_table_caption,
+            invert_bounds=invert_bounds,
+            matte_bounds=matte_bounds,
         )
         return
 
@@ -96,6 +114,16 @@ def main() -> None:
             header_blocks.append(
                 load_template("docheader", "expand_detail.js")
             )
+    if args.enable_parser:
+        # Runtime canvas processor for the I/M effects; inject the
+        # configured thresholds (THEME_GATED stays off for MPE).
+        header_blocks.append(
+            inject_image_effects_defaults(
+                load_template("docheader", "image_effects.js"),
+                invert_bounds,
+                matte_bounds,
+            )
+        )
 
     write_output(output_path, blocks, parse_blocks, html_blocks, header_blocks)
 

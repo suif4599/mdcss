@@ -129,10 +129,9 @@
   html body table thead th {
     background: #e8e8e8 !important;
   }
-  /* Remove invert and mix (parser-mode classes; harmless when absent) */
-  img.mdcss-inv,
-  img.mdcss-bright,
-  img.mdcss-mix {
+  /* Remove invert and mix (parser-mode classes; harmless when absent). */
+  img[class*="mdcss-inv"],
+  img[class*="mdcss-mix"] {
     filter: none !important;
     mix-blend-mode: normal !important;
   }

@@ -23,3 +23,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 MdMisc = ["templates/**/*", "config.json"]
+
+[tool.pytest.ini_options]
+pythonpath = ["docs"]

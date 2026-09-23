@@ -6,7 +6,7 @@ from typing import Any, Callable
 
 HOME = Path.home()
 SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent          # src/ 的上一级 → 项目根
+PROJECT_ROOT = SCRIPT_DIR.parent.parent  # two levels up from docs/src/
 DEFAULT_EXTENSIONS_ROOT = HOME / ".vscode" / "extensions"
 DEFAULT_OUTPUT = HOME / ".local" / "state" / "crossnote"
 CONFIG_DIR = PROJECT_ROOT / "config"
@@ -191,7 +191,9 @@ def save_config(args: argparse.Namespace) -> None:
                         ("print_margin", "print.print_margin"),
                         ("auto_count", "headings.auto_count"),
                         ("heading_underline", "headings.heading_underline"),
-                        ("font_size", "fonts.font_size")]:
+                        ("font_size", "fonts.font_size"),
+                        ("invert_bounds", "features.invert_bounds"),
+                        ("matte_bounds", "features.matte_bounds")]:
         _set(data, dotted, getattr(args, key, None))
 
     # Boolean flags
@@ -241,7 +243,7 @@ def resolve_crossnote_style_path(extension_dir: Path, css_path: Path) -> Path:
 
 
 def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
-    cfg: dict[str, Any] = config  # shorthand
+    cfg: dict[str, Any] = config
 
     parser = argparse.ArgumentParser(
         description="Generate Crossnote style.less with more features."
@@ -383,6 +385,26 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
             "Comma-separated layout/effect tokens to cover with CSS fallback rules when "
             "--enable-parser is off. Valid tokens: r, L, R, Lf, Rf, i, m. "
             "Default: empty (width-only fallback, 100 rules). Ignored with --enable-parser."
+        ),
+    )
+    parser.add_argument(
+        "--invert-bounds",
+        type=str,
+        default=_nested_get(cfg, "features.invert_bounds", "32,239"),
+        help=(
+            "Default luma thresholds \"lo,hi\" (8-bit, 0-255) for the I image effect: "
+            "pixels with luma below lo or above hi are brightness-mirrored. "
+            "Overridable per image with I(lo,hi). Default: 32,239."
+        ),
+    )
+    parser.add_argument(
+        "--matte-bounds",
+        type=str,
+        default=_nested_get(cfg, "features.matte_bounds", "64,239"),
+        help=(
+            "Default luma thresholds \"lo,hi\" (8-bit, 0-255) for the M image effect: "
+            "pixels with luma below lo are brightened, pixels above hi become transparent. "
+            "Overridable per image with M(lo,hi). Default: 64,239."
         ),
     )
     parser.add_argument(

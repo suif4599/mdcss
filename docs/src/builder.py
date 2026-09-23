@@ -226,13 +226,8 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
     parser_blocks.append(
         load_template("parser", "preparser_lineshift.js")
     )
-    # Paragraph indent
     parser_blocks.append(
         load_template("parser", "preparser_indent.js")
-    )
-    # Invert brightness
-    parser_blocks.append(
-        load_template("parser", "preparser_invert_brightness.js")
     )
     # Fence extract (must run first in markdown preprocess)
     parser_blocks.append(
@@ -242,7 +237,6 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
     parser_blocks.append(
         load_template("parser", "preparser_zebra.js")
     )
-    # PDF center
     parser_blocks.append(
         load_template("parser", "preparser_pdf.js")
     )
@@ -250,11 +244,10 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
     html_blocks.append(
         load_template("parser", "postparser_uri_decode.js")
     )
-    # Image alt size
+    # Tags I/M images with classes for the runtime processor
     html_blocks.append(
         load_template("parser", "postparser_image.js")
     )
-    # Table
     html_blocks.append(
         load_template("parser", "postparser_table.js")
     )
@@ -262,12 +255,10 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
     html_blocks.append(
         load_template("parser", "postparser_zebra.js")
     )
-    # Table caption
     if enable_table_caption:
         html_blocks.append(
             load_template("parser", "postparser_tablecaption.js")
         )
-    # Image title
     html_blocks.append(
         load_template("parser", "postparser_imagetitle.js")
     )
@@ -279,12 +270,10 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
     html_blocks.append(
         load_template("parser", "postparser_columnsync.js")
     )
-    # title prefix
     parser_blocks.append(
         load_template("parser", "preparser_titleprefix.js")
         .replace("@MAPPER_PLACEHOLDER@", ", ".join(parse_mappers(mappers)))
     )
-    # Multicolunn
     parser_blocks.append(
         load_template("parser", "preparser_column.js")
     )
@@ -293,6 +282,32 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
         load_template("parser", "preparser_fence_restore.js")
     )
     return parser_blocks, html_blocks
+
+
+def inject_image_effects_defaults(
+    block: str,
+    invert_bounds: tuple[int, int],
+    matte_bounds: tuple[int, int],
+    theme_gated: bool = False,
+) -> str:
+    """Inject build-time defaults into the image_effects.js template.
+
+    Replaces the INVERT_BOUNDS / MATTE_BOUNDS literals with the configured
+    bounds and optionally switches THEME_GATED on (the Inkstone emission:
+    the effects follow :root[data-theme], dark only, restoring the original
+    image on light). Raises if the template drifted and a literal is gone.
+    """
+    replacements = {
+        "var INVERT_BOUNDS = [32, 239];": f"var INVERT_BOUNDS = [{invert_bounds[0]}, {invert_bounds[1]}];",
+        "var MATTE_BOUNDS = [64, 239];": f"var MATTE_BOUNDS = [{matte_bounds[0]}, {matte_bounds[1]}];",
+    }
+    if theme_gated:
+        replacements["var THEME_GATED = false;"] = "var THEME_GATED = true;"
+    for old, new in replacements.items():
+        if old not in block:
+            raise ValueError(f"Literal not found in image_effects.js template: {old}")
+        block = block.replace(old, new)
+    return block
 
 
 def write_output(

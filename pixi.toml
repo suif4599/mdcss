@@ -16,3 +16,7 @@ python = "3.12.*"
 fonttools = ">=4.63.0,<5"
 cssutils = ">=2.15.0,<3"
 pytest = ">=9.1.1,<10"
+nodejs = ">=26.8.2,<26.9"
+
+[pypi-dependencies]
+jsbeautifier = ">=1.15.4, <2"

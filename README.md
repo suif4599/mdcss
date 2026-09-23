@@ -37,7 +37,7 @@
 
 | 类别 | 功能 |
 | --- | --- |
-| **图片** | 宽度控制（百分比/px）、单行多图、对齐、文字环绕、反相、亮度反转、去背景、图片标题 |
+| **图片** | 宽度控制（百分比/px）、单行多图、对齐、文字环绕、反相、亮度两端互换（可调阈值）、亮部抠图＋暗部提亮（可调阈值）、去背景、图片标题 |
 | **表格** | 合并单元格、删除单元格、跨页重复标题、表格标题、自动列宽、间行深浅背景色（预览+打印） |
 | **多列排版** | 多列布局、列宽控制（百分比/px）、竖直对齐（上/中/下）、主列标记 |
 | **标题编号** | 多级编号、6 种样式（数字/拉丁/罗马/中文等）、可配置各级格式 |
@@ -78,7 +78,9 @@ python mdcss/mdcss.py \
 | `--enable-parser` | `False` | 启用 parser.js 增强功能（图片控制语法、表格合并、多列、标题编号、缩进等） |
 | `--css-fallback-features` | `""` | 纯 CSS 模式（未启用 `--enable-parser`）下额外覆盖的布局/效果 token，逗号分隔：`r`/`L`/`R`/`Lf`/`Rf`/`i`/`m`。空 = 仅宽度回退（100 条规则）；生成的规则数超过 200 时需要确认 |
 | `--yes` | `False` | 跳过规则数确认提示（无人值守场景，如 nix 构建；非交互且无此参数时直接报错退出） |
-| `--enable-header` | `False` | 启用 head.html 注入（配合 `--expand-detail`） |
+| `--invert-bounds` | `32,239` | `I` 效果的默认亮度阈值 `lo,hi`（8-bit）：低于 `lo` 或高于 `hi` 的像素亮度互换；单图可用 `I(lo,hi)` 覆盖 |
+| `--matte-bounds` | `64,239` | `M` 效果的默认亮度阈值 `lo,hi`：低于 `lo` 的像素提亮、高于 `hi` 的像素透明；单图可用 `M(lo,hi)` 覆盖 |
+| `--enable-header` | `False` | 启用 head.html 注入（`--expand-detail`，以及 `--enable-parser` 时自动包含的 I/M 运行时处理器） |
 | `--expand-detail` | `False` | 打印时自动展开 `<detail>` 标签（需要 `--enable-header`） |
 | `--enable-table-horizontal-scroll` | `False` | 允许宽表格水平滚动（默认强制换行避免滚动） |
 | `--auto-count` | `none, chinese, number, number, latin, roman` | 标题编号样式，逗号分隔的 6 个值对应 h1-h6，支持 `number`/`latin`/`latinUpper`/`roman`/`romanUpper`/`chinese`/`none` |
@@ -101,7 +103,8 @@ python mdcss/mdcss.py \
 
 - 宽度：1-4 位整数 + 可选单位 `%`（默认，封顶 100）/ `px`（不封顶）；纯 CSS 模式（未启用 `--enable-parser`）只识别带 `%` 的宽度
 - 布局：`r` 单行多图、`L`/`R` 左右对齐、`Lf`/`Rf` 文字环绕
-- 效果：`i` 反相、`m` 去背景（实验性，混合模式 `multiply`）、`I` 亮度反转（实验性，需 parser）；效果仅在预览时生效
+- 效果：`i` 反相、`m` 去背景（实验性，混合模式 `multiply`）、`I` 亮度两端互换（实验性，需 parser + head.html）、`M` 亮部抠图＋暗部提亮（实验性，需 parser + head.html）；效果仅在预览时生效
+- `I`/`M` 由 head.html 中的运行时 canvas 处理器在图片原始分辨率上逐像素完成（画质与原图一致，含抗锯齿边缘的连续处理），可按图指定阈值（如 `I(10,253)`/`M(64,250)`），默认值见 `--invert-bounds`/`--matte-bounds`；跨域不可读的图片（如导出的 file:// 页面）保持原样
 
 **caption 图注与 alt 真实替代文本**（需 parser）：
 
@@ -277,10 +280,11 @@ python mdcss.py --emit-inkstone <inkstone-repo>
 | 文件 | 落点 | 内容 |
 | --- | --- | --- |
 | `mdcss-bridge.js` | `src/client/lib/markdown/` | ESM 模块，导出 `mdcssPre(source)` / `mdcssPost(html)`，由 inkstone 的 `renderMarkdown` 在 markdown-it 渲染前后调用 |
+| `mdcss-runtime.js`（+ `mdcss-runtime.d.ts`） | `src/client/lib/markdown/` | 自启动运行时脚本（head.html 的桥接对应物，目前含 I/M canvas 处理器）：初始扫描 + MutationObserver 自观察，inkstone 侧经副作用导入加载一次，覆盖预览/分享等全部渲染面；处理结果按「效果+阈值+原图 URL」LRU 缓存（inkstone 预览每次防抖重渲都会重建 `<img>`） |
 | `mdcss.css` | `src/client/styles/` | 可移植的排版 CSS（`.ink-prose` 作用域），在 `app.css` 中 `@import` |
 
 与 MPE 输出的差异：
 
-- 图片效果（`i` 反相 / `I` 亮度反转 / `m` 去背景）统一改为跟随浏览器主题：仅 `:root[data-theme='dark']` 下生效（MPE 中是「预览生效、`@media print` 重置」）。
+- 图片效果统一改为跟随浏览器主题：仅 `:root[data-theme='dark']` 下生效（MPE 中是「预览生效、`@media print` 重置」）。其中 `i` 反相 / `m` 去背景由 CSS 规则门控；`I` 亮度反转 / `M` 亮部抠图为运行时 canvas 效果，由 `mdcss-runtime.js` 在渲染后的 DOM 上处理，切回浅色主题时自动还原为原图。
 - 行号账本（`data-source-line` 重映射）移植为 inkstone 的 `data-line` 属性名。
-- 不桥接：字体、打印/导出样式、主题 CSS、head.html、`@import` PDF、uri 双重编码修复
+- 不桥接：字体、打印/导出样式、主题 CSS、head.html 的其余脚本（如 expand_detail）、`@import` PDF、uri 双重编码修复

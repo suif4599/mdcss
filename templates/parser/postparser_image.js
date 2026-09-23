@@ -1,11 +1,18 @@
 // Image alt control syntax: ![control|caption|alt](src)
-//   control := WIDTH [UNIT] [LAYOUT] [EFFECT]  (may be empty: caption/alt only)
+//   control := WIDTH [UNIT] [LAYOUT] [EFFECT [BOUNDS]]  (may be empty)
 //   WIDTH   := 1-4 digits; UNIT := % (default, capped at 100) | px (uncapped)
 //   LAYOUT  := r | L | R | Lf | Rf (mutually exclusive)
-//   EFFECT  := i | I | m (mutually exclusive)
+//   EFFECT  := i | I | m | M (mutually exclusive)
+//   BOUNDS  := (lo,hi) — optional per-image luma thresholds (8-bit) for I/M,
+//              e.g. I(10,253) or M(5,250). Invalid bounds fall back to the
+//              global defaults (plain I/M behavior).
 // An alt whose first pipe field does not match this grammar (and is not empty)
 // is a real alt text: the image is left completely untouched.
-const MDCSS_CONTROL_RE = /^(\d{1,4})(%|px)?(Lf|Rf|r|L|R)?(i|I|m)?$/;
+// The I/M classes (mdcss-bright / mdcss-matte, optionally with the -lo-hi
+// suffix) are picked up by the runtime canvas processor in head.html
+// (templates/docheader/image_effects.js), which transforms the pixels and
+// swaps in the result as the new image src.
+const MDCSS_CONTROL_RE = /^(\d{1,4})(%|px)?(Lf|Rf|r|L|R)?(i|I|m|M)?(?:\((\d{1,3}),(\d{1,3})\))?$/;
 const MDCSS_LAYOUT_CLASS = {
     r: 'mdcss-row',
     L: 'mdcss-left',
@@ -17,6 +24,7 @@ const MDCSS_EFFECT_CLASS = {
     i: 'mdcss-inv',
     I: 'mdcss-bright',
     m: 'mdcss-mix',
+    M: 'mdcss-matte',
 };
 
 function parseImageAlt(alt) {
@@ -29,11 +37,23 @@ function parseImageAlt(alt) {
         // Non-matching first field (e.g. plain English alt) => real alt text.
         if (!match || Number(match[1]) <= 0) return null;
     }
+    let lo = null;
+    let hi = null;
+    if (match && match[5] !== undefined) {
+        const a = Number(match[5]);
+        const b = Number(match[6]);
+        if (0 <= a && a < b && b <= 255) {
+            lo = a;
+            hi = b;
+        }
+    }
     return {
         width: match ? Number(match[1]) : null,
         unit: match ? (match[2] || '%') : null,
         layout: match ? (match[3] || null) : null,
         effect: match ? (match[4] || null) : null,
+        effectLo: lo,
+        effectHi: hi,
         caption: (parts[1] || '').trim(),
         // Everything from the third pipe field on belongs to the real alt
         // (the real alt itself may contain pipes).
@@ -127,7 +147,13 @@ html = html.replace(/<img\b[^>]*>/gi, (imgTag) => {
     const widthValue = widthValueOf(parsed);
     const classes = [];
     if (parsed.layout) classes.push(MDCSS_LAYOUT_CLASS[parsed.layout]);
-    if (parsed.effect) classes.push(MDCSS_EFFECT_CLASS[parsed.effect]);
+    if (parsed.effect) {
+        if (parsed.effectLo !== null) {
+            classes.push(`${MDCSS_EFFECT_CLASS[parsed.effect]}-${parsed.effectLo}-${parsed.effectHi}`);
+        } else {
+            classes.push(MDCSS_EFFECT_CLASS[parsed.effect]);
+        }
+    }
     if (widthValue === null && !parsed.caption) return imgTag;
 
     let tag = imgTag;

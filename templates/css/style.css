@@ -1,10 +1,10 @@
   /* Image effects — classes are added by parser.js (postparser_image.js).
-     In no-parser mode nothing adds these classes, so the rules stay inert. */
+     In no-parser mode nothing adds these classes, so the rules stay inert.
+     I/M (mdcss-bright / mdcss-matte) are runtime canvas effects: the
+     processor in head.html swaps in the transformed image, so they need
+     no CSS rule here. */
   img.mdcss-inv {
     filter: invert(85%);
-  }
-  img.mdcss-bright {
-    filter: url(#invert-brightness);
   }
   img.mdcss-mix {
     mix-blend-mode: multiply;

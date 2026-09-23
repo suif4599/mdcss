@@ -12,6 +12,16 @@ def project_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+@pytest.fixture(autouse=True)
+def run_from_project_root(project_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run every test with the project root as the working directory.
+
+    Makes the suite independent of the directory pytest was invoked from
+    (pyproject.toml's `pythonpath` covers the import side of the same issue).
+    """
+    monkeypatch.chdir(project_root)
+
+
 @pytest.fixture
 def template_dir(project_root: Path) -> Path:
     """Return the templates/ directory."""

@@ -65,8 +65,15 @@
 | `L` / `R` | 左对齐 / 右对齐 | 始终生效（纯 CSS 模式需配置回退） |
 | `Lf` / `Rf` | 文字环绕 | 始终生效（纯 CSS 模式需配置回退） |
 | `i` | 反相 | 预览时（纯 CSS 模式需配置回退） |
-| `I` | 亮度反转（实验性） | 需 `--enable-parser` |
+| `I` | 亮度两端互换（实验性） | 需 `--enable-parser` |
 | `m` | 去除背景（实验性） | 预览时（纯 CSS 模式需配置回退） |
+| `M` | 亮部抠图＋暗部提亮（实验性） | 需 `--enable-parser` |
+
+`I` 与 `M` 的阈值可用 `I(下界,上界)` / `M(下界,上界)` 按图指定（8-bit 亮度值，如 `![40%I(10,253)](./a.png)`）：`I` 互换亮度低于下界或高于上界的像素，`M` 提亮低于下界的像素、将高于上界的像素设为透明。省略时使用全局默认（`I` 为 32,239，`M` 为 64,239），可通过 `--invert-bounds` / `--matte-bounds` 或 config.json 的 `features.invert_bounds` / `features.matte_bounds` 修改。
+
+选取下界时注意：下界必须高于图中暗色内容（文字、线条）的抗锯齿边缘亮度（通常在 100 以上），使整个内容连同其抗锯齿梯度一起被连续翻转；下界过低（如 10）会把字核心与边缘劈开，翻转后的文字会带灰色晕边。下界取小值只适合大面积近黑纯色、不含细字的图。
+
+`I` 与 `M` 由运行时脚本（head.html 中的 canvas 处理器）在图片原始分辨率上逐像素完成，画质与原图完全一致；需要预览环境启用 head.html（MPE 预览）。分段判定基于局部背景亮度（min/max 邻域滤波），抗锯齿文字与细线会随其背景整体连续翻转，不产生灰晕或黑白断裂。若图片受跨域限制无法读取像素（如纯 file:// 页面），图片保持原样。Inkstone 桥接经 `mdcss-runtime.js` 运行时脚本同样支持 `I`/`M`：仅暗色主题（`:root[data-theme='dark']`）下生效，切回浅色主题自动还原为原图，处理结果按图缓存以跟随预览重渲。
 
 会在接下来的 2 节中说明。
 
@@ -82,15 +89,21 @@
 
 ![25%r](./assets/image.jpeg) ![25%r](./assets/image.jpeg) ![25%r](./assets/image.jpeg)
 
-`r` 可以与其他效果字母组合使用：
+`r` 可以与其他效果字母组合使用。
+
+下例使用色轮图（白色不透明背景）：角度为色相（0-360° 一整圈），半径同时编码饱和度与亮度——中心纯白（S=0, V=1），向外饱和度升高、亮度降低，边缘为深饱和色（S=1, V≈0.28）。在暗色预览中对比各效果：`I` 只互换亮度两端（中心与外圈）且色相环保留不变，`i` 反相会使色相整体旋转半圈，`M` 将白色背景与中心抠图、深色外圈提亮。
 
 代码：
 
-`![25%ri|.反相](./assets/image.jpeg) ![25%rI|.反转亮度](./assets/image.jpeg) ![25%rm|.去除背景](./assets/image.jpeg)`
+`![19%r|.原图](./assets/colorwheel.png) ![19%ri|.反相](./assets/colorwheel.png) ![19%rI|.亮度两端互换](./assets/colorwheel.png) ![19%rm|.去除背景](./assets/colorwheel.png) ![19%rM|.亮部抠图](./assets/colorwheel.png)`
 
 效果：
 
-![25%ri|.反相](./assets/image.jpeg) ![25%rI|.反转亮度（实验性）](./assets/image.jpeg) ![25%rm|.去除背景（实验性）](./assets/image.jpeg)
+![19%r|.原图](./assets/colorwheel.png) ![19%ri|.反相（实验性）](./assets/colorwheel.png) ![19%rI|.亮度两端互换（实验性）](./assets/colorwheel.png) ![19%rm|.去除背景（实验性）](./assets/colorwheel.png) ![19%rM|.亮部抠图＋暗部提亮（实验性）](./assets/colorwheel.png)
+
+效果截图（导出 PDF 使用）：
+
+![100|.效果截图](./assets/colorwhell-effect.png)
 
 多行多图只需重复多组 `r`，每行一组：
 

@@ -1,11 +1,13 @@
 :root[data-theme='dark'] .ink-prose img.mdcss-inv {
   filter: invert(85%);
 }
-:root[data-theme='dark'] .ink-prose img.mdcss-bright {
-  filter: url(#invert-brightness);
-}
 :root[data-theme='dark'] .ink-prose img.mdcss-mix {
   mix-blend-mode: multiply;
+}
+:root[data-theme='dark'] .ink-prose img.mdcss-matte,
+:root[data-theme='dark'] .ink-prose img[class*='mdcss-matte-'] {
+  background: transparent;
+  border-color: transparent;
 }
 .ink-prose img.mdcss-float-left {
   float: left;
