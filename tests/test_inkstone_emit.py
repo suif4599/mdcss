@@ -188,6 +188,11 @@ class TestBuildInkstoneRuntime:
         assert "/*" not in runtime
         assert "*/" not in runtime
 
+    def test_node_test_hook_stripped(self) -> None:
+        runtime = self.runtime()
+        assert "module.exports" not in runtime
+        assert "@MDCSS_TEST_HOOK_" not in runtime
+
     def test_self_booting_and_theme_aware(self) -> None:
         runtime = self.runtime()
         assert "MutationObserver" in runtime

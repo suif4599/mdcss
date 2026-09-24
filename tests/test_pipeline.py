@@ -135,17 +135,33 @@ class TestPreFence:
         assert "Table<zebra>: x" in out
         assert "Table@" not in out
 
-    def test_zebra_tag_in_indented_fence_is_rewritten_known_bug(self) -> None:
-        # Known bug B1: fence extraction only recognizes column-0 fences, but
-        # the zebra rewrite allows up to 3 leading spaces — a tagged line in a
-        # CommonMark-legal indented fence (e.g. inside a list) is corrupted.
-        # Flip this expectation when the fence scanner learns about indentation.
+    def test_zebra_tag_in_indented_fence_untouched(self) -> None:
+        # Regression (was bug B1): the old column-0-only fence regex let the
+        # zebra rewrite corrupt tagged lines inside indented fences (lists).
         out = pre("  ```md\n  Table<zebra>: x\n  ```\n")["markdown"]
-        assert "Table@zebra@: x" in out
+        assert "Table<zebra>: x" in out
+        assert "Table@" not in out
 
-    def test_column_syntax_in_indented_content_ignored_known_bug(self) -> None:
-        # Known bug B2 (same root cause): indented column syntax is silently
-        # ignored — no corruption, but the feature does not fire inside lists.
+    def test_tilde_fence_untouched(self) -> None:
+        out = pre("~~~\n|||-40\nTable<zebra>: x\n~~~\n")["markdown"]
+        assert "|||-40" in out
+        assert "Table<zebra>: x" in out
+        assert "data-mdcss-cols" not in out
+
+    def test_unclosed_fence_protected_to_eof(self) -> None:
+        out = pre("```md\n|||-40\n## .never numbered\n")["markdown"]
+        assert "|||-40" in out
+        assert "## .never numbered" in out
+
+    def test_fence_inside_list_item_protected(self) -> None:
+        md = "- item\n\n  ```\n  |||-\n  fenced\n  |||\n  ```\n"
+        out = pre(md)["markdown"]
+        assert "|||-" in out
+        assert "data-mdcss-cols" not in out
+
+    def test_column_syntax_in_indented_content_ignored(self) -> None:
+        # Documented limitation: column markup only fires at column 0, so
+        # indented (e.g. in-list) ||| lines are inert — no corruption though.
         out = pre("  |||-40\n  left\n\n  |||\n\n  right\n\n  -|||\n")["markdown"]
         assert "data-mdcss-cols" not in out
 
@@ -170,10 +186,15 @@ class TestPreColumn:
         out = pre("|||-\n\na\n\n|||:50%:\n\nb\n\n-|||\n")["markdown"]
         assert 'data-mdcss-col-align="center"' in out
 
-    def test_records_line_shifts_in_original_coordinates(self) -> None:
-        res = pre("para\n\n|||-\n\na\n\n|||\n\nb\n\n-|||\n\nafter\n")
-        # Each spec line is replaced by the div block plus join padding.
-        assert res["shifts"] == [[4, 10], [8, 6], [12, 2]]
+    def test_line_mapping_restored_through_ledger(self) -> None:
+        # The auto-diff ledger (preparser_linediff.js) maps every final line
+        # back to its original editor line: content lines keep their numbers,
+        # spec lines collapse into the div blocks.
+        md = "para\n\n|||-\n\nmain\n\n|||30\n\nside\n\n-|||\n\nafter\n"
+        res = pre(md)
+        final = res["markdown"].split("\n")
+        for text, orig in (("para", 1), ("main", 5), ("side", 9), ("after", 13)):
+            assert res["mapped"][final.index(text)] == orig
 
 
 @needs_node
@@ -197,7 +218,8 @@ class TestPreIndent:
     def test_indent_wraps_document(self) -> None:
         res = pre("@indent\n\npara\n")
         assert '<div class="has-indent">' in res["markdown"]
-        assert res["shifts"] == [[1, 2]]
+        final = res["markdown"].split("\n")
+        assert res["mapped"][final.index("para")] == 3
 
     def test_angle_bracket_form(self) -> None:
         assert "<indent>" not in pre("<indent>\n\npara\n")["markdown"]
@@ -264,6 +286,23 @@ class TestPreFixtures:
     def test_column_fixture_produces_grids(self, project_root: Path) -> None:
         md = (project_root / "test_md" / "test_column.md").read_text(encoding="utf-8")
         assert "data-mdcss-cols" in pre(md)["markdown"]
+
+
+@needs_node
+class TestLineDiff:
+    def test_combined_transforms_map_exact_lines(self) -> None:
+        # indent + fence + column + pdf in one document: every original
+        # content line must map back to exactly its own line number.
+        md = (
+            "@indent\n\npara\n\n```\n|||-40\nfenced\n```\n\n"
+            "|||-\n\nmain\n\n|||30\n\nside\n\n-|||\n\n"
+            '@import "./x.pdf" {page_no=1}\n'
+        )
+        res = pre(md)
+        final = res["markdown"].split("\n")
+        original = md.split("\n")
+        for text in ("para", "fenced", "main", "side", '@import "./x.pdf" {page_no=1}'):
+            assert res["mapped"][final.index(text)] == original.index(text) + 1
 
 
 @needs_node

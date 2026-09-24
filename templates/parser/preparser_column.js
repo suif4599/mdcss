@@ -84,33 +84,6 @@ function normalizeColumnWidths(entries) {
 function mergeColumnSpec(markdown) {
     let parts = markdown.split(columnRegex);
     let specIndex = {};
-    // 1-based line number of each part's first character in the input string,
-    // used to report the line shifts introduced by the div replacements below.
-    // A spec match is the line content without its trailing newline, so the
-    // part after a spec begins on the same line (its empty tail): a spec part
-    // does not advance the line cursor.
-    const partLine = [];
-    let lineCounter = 1;
-    for (const part of parts) {
-        partLine.push(lineCounter);
-        lineCounter += columnRegex.test(part) ? 0 : (part.match(/\n/g) || []).length;
-    }
-    // partLine positions are in pre-column coordinates: when converting them
-    // to original line numbers, this template's own shifts (and those of any
-    // earlier column section in the same document) must not be applied, so
-    // convert against a snapshot of the ledger taken before any recording.
-    const preLedger = globalThis.__MDCSS_LINE_SHIFTS__.slice().sort((a, b) => a.o - b.o);
-    function preOrigLine(cur) {
-        let cum = 0;
-        for (const s of preLedger) {
-            if (cur < s.o + cum) {
-                return cur - cum;
-            }
-            cum += s.d;
-        }
-        return cur - cum;
-    }
-    const pendingShifts = [];
     for (let i = 0; i < parts.length; i++) {
     if (!columnRegex.test(parts[i])) {
         continue;
@@ -167,20 +140,10 @@ function mergeColumnSpec(markdown) {
                 outerDiv = `</div>`;
                 }
                 parts[i] = `</div></div>`;
-                // every spec line is replaced inside parts.join("\n"), which
-                // pads each replacement with one extra newline on each side:
-                // lines after the spec shift by (replacement newlines + 2)
-                for (const { index } of orderedSpecs) {
-                    pendingShifts.push({ line: partLine[index], d: (parts[index].match(/\n/g) || []).length + 2 });
-                }
-                pendingShifts.push({ line: partLine[i], d: 2 });
                 specIndex = {};
             }
             break;
         }
-    }
-    for (const s of pendingShifts) {
-        globalThis.__mdcssRecordShift(preOrigLine(s.line) + 1, s.d);
     }
     return parts.join("\n");
 }

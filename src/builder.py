@@ -1,3 +1,4 @@
+import json
 import re
 from pathlib import Path
 
@@ -7,22 +8,56 @@ import jsbeautifier  # pyright: ignore[reportMissingImports]
 from src.config import VALID_FALLBACK_EFFECTS, VALID_FALLBACK_LAYOUTS
 from src.font import resolve_font_family, resolve_font_path
 from src.print_style import generate_print_style
-from src.template import load_template
+from src.template import load_template, strip_test_hooks
 
 RULE_COUNT_THRESHOLD = 200
 
-# Mirror the inline styles postparser_image.js produces for each layout/effect token.
-_FALLBACK_LAYOUT_PROPS: dict[str, tuple[str, ...]] = {
-    "r": ("display: inline-block !important;", "margin: 0 !important;", "vertical-align: middle !important;"),
-    "L": ("display: block !important;", "margin-left: 0 !important;", "margin-right: auto !important;"),
-    "R": ("display: block !important;", "margin-left: auto !important;", "margin-right: 0 !important;"),
-    "Lf": ("float: left;",),
-    "Rf": ("float: right;",),
+# Single source for the inline layout properties of each layout token:
+# postparser_image.js consumes it as JSON (injected at assembly, see
+# layout_props_json) and the no-parser CSS fallback rules below are generated
+# from the same table. Lf/Rf float via CSS class only on the parser path, so
+# they live in _FALLBACK_FLOAT_PROPS instead.
+LAYOUT_INLINE_PROPS: dict[str, dict[str, str]] = {
+    "": {"display": "block !important", "margin": "0 auto !important"},
+    "r": {"display": "inline-block !important", "margin": "0 !important", "vertical-align": "middle !important"},
+    "L": {"display": "block !important", "margin-left": "0 !important", "margin-right": "auto !important"},
+    "R": {"display": "block !important", "margin-left": "auto !important", "margin-right": "0 !important"},
+}
+_FALLBACK_FLOAT_PROPS: dict[str, dict[str, str]] = {
+    "Lf": {"float": "left"},
+    "Rf": {"float": "right"},
 }
 _FALLBACK_EFFECT_PROPS: dict[str, str] = {
     "i": "filter: invert(85%);",
     "m": "mix-blend-mode: multiply;",
 }
+
+
+def layout_props_json() -> str:
+    """The shared layout table serialized for postparser_image.js."""
+    return json.dumps(LAYOUT_INLINE_PROPS)
+
+
+# Table layout block for no-horizontal-scroll mode; templates/inkstone/
+# mdcss.css carries a scoped, token-wrapped copy of the same rules (pinned
+# by tests/test_css_sync.py).
+_TABLE_LAYOUT_BLOCK = """
+  table {
+    display: table !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    table-layout: auto !important;
+    overflow-x: visible !important;
+    font-size: inherit !important;
+  }
+  th, td {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    font-size: inherit !important;
+  }
+"""
 
 
 def _fallback_combos(features: list[str]):
@@ -40,10 +75,11 @@ def _fallback_combos(features: list[str]):
 
 def _fallback_props(width: int, layout: str | None, effect: str | None) -> str:
     props = [f"width: {width}% !important;", "height: auto;"]
-    if layout is None:
-        props += ["display: block;", "margin: 0 auto;"]
-    else:
-        props += list(_FALLBACK_LAYOUT_PROPS[layout])
+    key = layout or ""
+    for name, value in LAYOUT_INLINE_PROPS.get(key, {}).items():
+        props.append(f"{name}: {value};")
+    for name, value in _FALLBACK_FLOAT_PROPS.get(key, {}).items():
+        props.append(f"{name}: {value};")
     if effect is not None:
         props.append(_FALLBACK_EFFECT_PROPS[effect])
     return " ".join(props)
@@ -163,23 +199,7 @@ def build_style_blocks(
             )
 
     if not enable_table_horizontal_scroll:
-        blocks.append("""
-  table {
-    display: table !important;
-    width: fit-content !important;
-    max-width: 100% !important;
-    margin: 0 auto !important;
-    table-layout: auto !important;
-    overflow-x: visible !important;
-    font-size: inherit !important;
-  }
-  th, td {
-    white-space: normal !important;
-    overflow-wrap: anywhere !important;
-    word-break: break-word !important;
-    font-size: inherit !important;
-  }
-""")
+        blocks.append(_TABLE_LAYOUT_BLOCK)
 
     if code_font_family:
         blocks.append(f"""
@@ -222,72 +242,59 @@ def parse_mappers(mappers: str) -> list[str]:
     return levels
 
 
+# Ordered pass registries — the single source of truth for the emitted
+# parser.js (below) and the Inkstone bridge (src/inkstone.py filters by
+# target). Order constraints:
+#   pre:  lineshift first (ledger + original snapshot); fence extract before
+#         every line/content rewriter (fenced text must stay untouched);
+#         fence restore after every rewriter; linediff last (it diffs the
+#         final text markdown-it renders)
+#   post: uri decode before other img work; zebra after table merges (reads
+#         rowspan) and before the caption wrap; linerestore before columnsync
+PRE_PASSES: tuple[tuple[str, str], ...] = (
+    ("preparser_lineshift.js", "both"),
+    ("preparser_indent.js", "both"),
+    ("preparser_fence_extract.js", "both"),
+    ("preparser_tablecell.js", "both"),
+    ("preparser_zebra.js", "both"),
+    ("preparser_pdf.js", "mpe"),
+    ("preparser_titleprefix.js", "both"),
+    ("preparser_column.js", "both"),
+    ("preparser_fence_restore.js", "both"),
+    ("preparser_linediff.js", "both"),
+)
+
+POST_PASSES: tuple[tuple[str, str], ...] = (
+    ("postparser_uri_decode.js", "mpe"),
+    ("postparser_image.js", "both"),
+    ("postparser_table.js", "both"),
+    ("postparser_zebra.js", "both"),
+    ("postparser_tablecaption.js", "both"),
+    ("postparser_imagetitle.js", "both"),
+    ("postparser_columnstyle.js", "inkstone"),
+    ("postparser_linerestore.js", "both"),
+    ("postparser_columnsync.js", "mpe"),
+)
+
+
 def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tuple[list[str], list[str]]:
     parser_blocks: list[str] = []
+    for name, target in PRE_PASSES:
+        if target == "inkstone":
+            continue
+        block = load_template("parser", name)
+        if name == "preparser_titleprefix.js":
+            block = block.replace("@MAPPER_PLACEHOLDER@", ", ".join(parse_mappers(mappers)))
+        parser_blocks.append(block)
+
     html_blocks: list[str] = []
-    # Line-shift ledger (must run before any pre-parser that changes line count)
-    parser_blocks.append(
-        load_template("parser", "preparser_lineshift.js")
-    )
-    parser_blocks.append(
-        load_template("parser", "preparser_indent.js")
-    )
-    # Fence extract (must run first in markdown preprocess)
-    parser_blocks.append(
-        load_template("parser", "preparser_fence_extract.js")
-    )
-    # Backslash-cell protection (after fence extract, before markdown-it)
-    parser_blocks.append(
-        load_template("parser", "preparser_tablecell.js")
-    )
-    # Zebra strategy tag normalization (after fence extract, before markdown-it)
-    parser_blocks.append(
-        load_template("parser", "preparser_zebra.js")
-    )
-    parser_blocks.append(
-        load_template("parser", "preparser_pdf.js")
-    )
-    # URI double-encoding fix (must run before other img postprocessors)
-    html_blocks.append(
-        load_template("parser", "postparser_uri_decode.js")
-    )
-    # Tags I/M images with classes for the runtime processor
-    html_blocks.append(
-        load_template("parser", "postparser_image.js")
-    )
-    html_blocks.append(
-        load_template("parser", "postparser_table.js")
-    )
-    # Table zebra strategies (after table merges, before the caption wrap)
-    html_blocks.append(
-        load_template("parser", "postparser_zebra.js")
-    )
-    if enable_table_caption:
-        html_blocks.append(
-            load_template("parser", "postparser_tablecaption.js")
-        )
-    html_blocks.append(
-        load_template("parser", "postparser_imagetitle.js")
-    )
-    # Line-number restore (must run before the column scroll-sync block)
-    html_blocks.append(
-        load_template("parser", "postparser_linerestore.js")
-    )
-    # Column scroll sync (main-column anchoring)
-    html_blocks.append(
-        load_template("parser", "postparser_columnsync.js")
-    )
-    parser_blocks.append(
-        load_template("parser", "preparser_titleprefix.js")
-        .replace("@MAPPER_PLACEHOLDER@", ", ".join(parse_mappers(mappers)))
-    )
-    parser_blocks.append(
-        load_template("parser", "preparser_column.js")
-    )
-    # Fence restore (must run last in markdown preprocess)
-    parser_blocks.append(
-        load_template("parser", "preparser_fence_restore.js")
-    )
+    for name, target in POST_PASSES:
+        if target == "inkstone" or (name == "postparser_tablecaption.js" and not enable_table_caption):
+            continue
+        block = load_template("parser", name)
+        if name == "postparser_image.js":
+            block = block.replace("@MDCSS_LAYOUT_PROPS@", layout_props_json())
+        html_blocks.append(block)
     return parser_blocks, html_blocks
 
 
@@ -359,7 +366,9 @@ def write_output(
         parser_js.write_text(output, encoding="utf-8")
         print(f"Generated parser.js written to: {parser_js.resolve()}")
     if header_blocks:
-        header_js = "\n".join(map(lambda x: x.strip("\n"), header_blocks))
+        header_js = "\n".join(
+            strip_test_hooks(block.strip("\n")) for block in header_blocks
+        )
         header_js = jsbeautifier.beautify(header_js, {"indent_size": 2}) # pyright: ignore[reportArgumentType]
         header_html = f"<script type=\"text/javascript\">\n{header_js}\n</script>"
         header_html_path = output_path / "head.html"

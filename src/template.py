@@ -19,3 +19,15 @@ def load_template(dir_: Literal["css", "parser", "docheader", "inkstone"], name:
     if re.search(r"<variable>\w+</variable>", content):
         raise ValueError(f"Unreplaced placeholders remain in template '{file}' after substitution")
     return content if content.endswith("\n") else content + "\n"
+
+
+_TEST_HOOK_RE = re.compile(r"//[ \t]*@MDCSS_TEST_HOOK_START@.*?//[ \t]*@MDCSS_TEST_HOOK_END@[ \t]*\n?", re.DOTALL)
+
+
+def strip_test_hooks(content: str) -> str:
+    """Remove a template's node test-hook block (delimited by the
+    @MDCSS_TEST_HOOK_ marker comments) so it never ships in emitted output."""
+    stripped = _TEST_HOOK_RE.sub("", content)
+    if "@MDCSS_TEST_HOOK_" in stripped:
+        raise ValueError("Unbalanced @MDCSS_TEST_HOOK_ markers in template")
+    return stripped

@@ -120,7 +120,6 @@ class TestColumnTemplates:
         assert "mergeColumnSpec" in result
         assert "data-mdcss-cols" in result
         assert "data-mdcss-col=" in result
-        assert "__mdcssRecordShift" in result
 
     def test_lineshift_content(self, template_dir: Path) -> None:
         from src.template import load_template
@@ -128,12 +127,15 @@ class TestColumnTemplates:
         result = load_template("parser", "preparser_lineshift.js")
         assert "__MDCSS_LINE_SHIFTS__" in result
         assert "__mdcssOrigLine" in result
+        assert "__mdcssRecordLineDiff" in result
 
-    def test_indent_and_pdf_record_shifts(self, template_dir: Path) -> None:
+    def test_linediff_closes_the_pre_pipeline(self, template_dir: Path) -> None:
+        from src.builder import PRE_PASSES
         from src.template import load_template
 
-        for name in ("preparser_indent.js", "preparser_pdf.js"):
-            assert "__mdcssRecordShift" in load_template("parser", name)
+        result = load_template("parser", "preparser_linediff.js")
+        assert "__mdcssRecordLineDiff" in result
+        assert PRE_PASSES[-1][0] == "preparser_linediff.js"
 
     def test_postparser_linerestore_content(self, template_dir: Path) -> None:
         from src.template import load_template

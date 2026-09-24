@@ -1,17 +1,12 @@
-__mdcssHasIndent = false;
-if (markdown.trimStart().startsWith('@indent')) {
-    markdown = markdown.trimStart().slice('@indent'.length);
-    __mdcssHasIndent = true;
-} else if (markdown.trimStart().startsWith('<indent>')) {
-    markdown = markdown.trimStart().slice('<indent>'.length);
-    __mdcssHasIndent = true;
-}
-if (__mdcssHasIndent) {
-    // the leading "<div>\n\n" pushes every content line down by 2 lines
-    globalThis.__mdcssRecordShift(1, 2);
+// Paragraph-indent document flag: @indent / <indent> (after leading
+// whitespace) wraps the whole document. No line-shift bookkeeping needed
+// here — preparser_linediff.js diffs the pipeline's final text.
+const __mdcssHead = markdown.trimStart();
+if (__mdcssHead.startsWith("@indent") || __mdcssHead.startsWith("<indent>")) {
+    const __mdcssFlag = __mdcssHead.startsWith("@indent") ? "@indent" : "<indent>";
     markdown = `<div class="has-indent">
 
-${markdown}
+${__mdcssHead.slice(__mdcssFlag.length)}
 
 </div>
 

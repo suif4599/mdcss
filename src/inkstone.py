@@ -37,41 +37,24 @@ from pathlib import Path
 
 from src.builder import inject_image_effects_defaults, parse_mappers
 from src.filters import DEFAULT_INVERT_BOUNDS, DEFAULT_MATTE_BOUNDS
-from src.template import load_template
+from src.template import load_template, strip_test_hooks
 
-# Pre-pass fragments in execution order. Fence extraction must come before the
-# line-rewriting passes and its restore must come last (same contract as the
-# MPE assembly in builder.build_parser_blocks). The MPE-only fragments
+# Fragment lists derive from the shared ordered registries in builder.py
+# (the single source of truth for pass order). The MPE-only fragments
 # (preparser_pdf, postparser_uri_decode, postparser_columnsync) are not part
 # of the bridge: the pdf import depends on crossnote's pdf2svg, uri_decode
 # fixes a crossnote-only double encoding bug, and columnsync targets
 # crossnote's scroll-sync internals.
-PRE_FRAGMENTS = (
-    "preparser_lineshift.js",
-    "preparser_indent.js",
-    "preparser_fence_extract.js",
-    "preparser_tablecell.js",
-    "preparser_zebra.js",
-    "preparser_titleprefix.js",
-    "preparser_column.js",
-    "preparser_fence_restore.js",
-)
+from src.builder import PRE_PASSES, POST_PASSES, layout_props_json  # noqa: E402
 
-# Post-pass fragments in execution order: image/table/tablecaption/imagetitle
-# mirror the MPE order; columnstyle rebuilds the styles DOMPurify stripped;
-# linerestore maps data-line values back to original editor lines (renamed
-# from crossnote's data-source-line attribute). The I/M image effects are
-# runtime-canvas only, so their classes pass through as inert markers here;
-# mdcss-runtime.js picks them up on the live DOM after rendering.
-POST_FRAGMENTS = (
-    "postparser_image.js",
-    "postparser_table.js",
-    "postparser_zebra.js",
-    "postparser_tablecaption.js",
-    "postparser_imagetitle.js",
-    "postparser_columnstyle.js",
-    "postparser_linerestore.js",
-)
+PRE_FRAGMENTS = tuple(name for name, target in PRE_PASSES if target in ("both", "inkstone"))
+
+# columnstyle rebuilds the inline styles DOMPurify stripped; linerestore maps
+# data-line values back to original editor lines (renamed from crossnote's
+# data-source-line attribute). The I/M image effects are runtime-canvas only,
+# so their classes pass through as inert markers here; mdcss-runtime.js picks
+# them up on the live DOM after rendering.
+POST_FRAGMENTS = tuple(name for name, target in POST_PASSES if target in ("both", "inkstone"))
 
 # Runtime fragments assembled into mdcss-runtime.js: the Inkstone counterpart
 # of the head.html docheader scripts. image_effects.js carries the I/M canvas
@@ -145,6 +128,8 @@ def _load_post_blocks(enable_table_caption: bool) -> list[str]:
         if name == "postparser_tablecaption.js" and not enable_table_caption:
             continue
         block = load_template("parser", name)
+        if name == "postparser_image.js":
+            block = block.replace("@MDCSS_LAYOUT_PROPS@", layout_props_json())
         if name == "postparser_linerestore.js":
             # Inkstone's renderer emits data-line (not crossnote's
             # data-source-line) on top-level tokens; remap the restore pass.
@@ -193,7 +178,9 @@ def build_inkstone_runtime(
                 block, invert_bounds, matte_bounds, theme_gated=True
             )
         blocks.append(block)
-    runtime = _strip_comments("\n".join(block.strip("\n") for block in blocks))
+    runtime = _strip_comments(
+        strip_test_hooks("\n".join(block.strip("\n") for block in blocks))
+    )
     try:
         import jsbeautifier  # pyright: ignore[reportMissingImports]
     except ImportError:

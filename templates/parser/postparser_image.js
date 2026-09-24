@@ -13,6 +13,9 @@
 // (templates/docheader/image_effects.js), which transforms the pixels and
 // swaps in the result as the new image src.
 const MDCSS_CONTROL_RE = /^(\d{1,4})(%|px)?(Lf|Rf|r|L|R)?(i|I|m|M)?(?:\((\d{1,3}),(\d{1,3})\))?$/;
+// Inline layout props per token, injected at assembly from builder.py's
+// LAYOUT_INLINE_PROPS (the same table generates the no-parser CSS fallback).
+const MDCSS_LAYOUT_PROPS = @MDCSS_LAYOUT_PROPS@;
 const MDCSS_LAYOUT_CLASS = {
     r: 'mdcss-row',
     L: 'mdcss-left',
@@ -93,25 +96,15 @@ function mergeStyle(existingStyle, widthValue, layout) {
     styleMap.delete('margin-right');
     styleMap.delete('vertical-align');
 
-    if (layout === 'r') {
-        styleMap.set('display', 'inline-block !important');
-        styleMap.set('margin', '0 !important');
-        styleMap.set('vertical-align', 'middle !important');
-    } else if (layout === 'L') {
-        styleMap.set('display', 'block !important');
-        styleMap.set('margin-left', '0 !important');
-        styleMap.set('margin-right', 'auto !important');
-    } else if (layout === 'R') {
-        styleMap.set('display', 'block !important');
-        styleMap.set('margin-left', 'auto !important');
-        styleMap.set('margin-right', '0 !important');
-    } else if (layout === 'Lf' || layout === 'Rf') {
+    if (layout === 'Lf' || layout === 'Rf') {
         // Float mode: keep width/height only; float comes from the CSS class.
         styleMap.delete('display');
     } else {
-        // No layout token: centered block, matching the CSS fallback rules.
-        styleMap.set('display', 'block !important');
-        styleMap.set('margin', '0 auto !important');
+        // Width-only (no token) centers as a block, matching the fallback.
+        const props = MDCSS_LAYOUT_PROPS[layout || ''];
+        for (const key of Object.keys(props)) {
+            styleMap.set(key, props[key]);
+        }
     }
 
     return Array.from(styleMap.entries())

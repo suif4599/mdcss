@@ -322,7 +322,10 @@
     }
 
     // Exposed for the node-based unit tests (tests/test_docheader.py);
-    // a no-op in browsers, where `module` is undefined.
+    // a no-op in browsers, where `module` is undefined. The marker comments
+    // let the emissions strip the whole block (strip_test_hooks) so it never
+    // ships in head.html or the inkstone runtime.
+    // @MDCSS_TEST_HOOK_START@
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = {
             KNEE: KNEE,
@@ -337,4 +340,5 @@
             transformPixels: transformPixels,
         };
     }
+    // @MDCSS_TEST_HOOK_END@
 })();

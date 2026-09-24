@@ -288,6 +288,22 @@ class TestWriteOutput:
         write_output(tmp_output_dir, [], header_blocks=["// test header"])
         assert (tmp_output_dir / "head.html").exists()
 
+    def test_head_html_strips_test_hook(self, tmp_output_dir: Path) -> None:
+        from src.builder import inject_image_effects_defaults, write_output
+        from src.filters import DEFAULT_INVERT_BOUNDS, DEFAULT_MATTE_BOUNDS
+        from src.template import load_template
+
+        block = inject_image_effects_defaults(
+            load_template("docheader", "image_effects.js"),
+            DEFAULT_INVERT_BOUNDS,
+            DEFAULT_MATTE_BOUNDS,
+        )
+        write_output(tmp_output_dir, [], header_blocks=[block])
+        head = (tmp_output_dir / "head.html").read_text(encoding="utf-8")
+        assert "module.exports" not in head
+        assert "@MDCSS_TEST_HOOK_" not in head
+        assert "MutationObserver" in head
+
     def test_no_parser_when_no_blocks(self, tmp_output_dir: Path) -> None:
         from src.builder import write_output
 
