@@ -50,6 +50,7 @@ PRE_FRAGMENTS = (
     "preparser_lineshift.js",
     "preparser_indent.js",
     "preparser_fence_extract.js",
+    "preparser_tablecell.js",
     "preparser_zebra.js",
     "preparser_titleprefix.js",
     "preparser_column.js",

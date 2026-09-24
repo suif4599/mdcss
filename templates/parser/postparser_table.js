@@ -60,3 +60,11 @@ const rm_th_regex = /<th[^>]*>\\<\/th>/g;
 html = html.replace(rm_th_regex, '');
 const esc_th_regex = /<th([^>]*)>\\\\<\/th>/g;
 html = html.replace(esc_th_regex, '<th$1>\\</th>');
+// Backslash cells protected by preparser_tablecell.js arrive as @MDCSS_BS_N@
+// tokens carrying the count typed in the markdown source: N=1 deletes the
+// cell, N>=2 renders N-1 literal backslashes. Tokens surviving elsewhere
+// (false-positive rows, inline code spans) are restored to ceil(N/2), what
+// markdown-it's escape rule would have produced.
+html = html.replace(/<t[dh][^>]*>@MDCSS_BS_1@<\/t[dh]>/g, '');
+html = html.replace(/<t([dh])([^>]*)>@MDCSS_BS_(\d+)@<\/t\1>/g, (m, tag, attrs, n) => `<t${tag}${attrs}>${'\\'.repeat(Number(n) - 1)}</t${tag}>`);
+html = html.replace(/@MDCSS_BS_(\d+)@/g, (m, n) => '\\'.repeat(Math.ceil(Number(n) / 2)));

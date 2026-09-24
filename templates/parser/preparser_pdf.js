@@ -3,7 +3,7 @@ markdown = markdown.replace(regex, (match, pdf, argument, offset) => {
     const replacement = `
 <div style="display: flex; justify-content: center; flex-wrap: wrap;">
 
-@import "${pdf}"{${argument}}
+@import "${pdf}"${argument ? " " + argument : ""}
 
 </div>
 

@@ -236,6 +236,10 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
     parser_blocks.append(
         load_template("parser", "preparser_fence_extract.js")
     )
+    # Backslash-cell protection (after fence extract, before markdown-it)
+    parser_blocks.append(
+        load_template("parser", "preparser_tablecell.js")
+    )
     # Zebra strategy tag normalization (after fence extract, before markdown-it)
     parser_blocks.append(
         load_template("parser", "preparser_zebra.js")
