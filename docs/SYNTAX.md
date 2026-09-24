@@ -553,9 +553,7 @@ def resolve_extension_dir(
 代码：
 
 ```markdown
-@import "./SYNTAX.pdf" {page_no=1}
+@import "./file.pdf" {page_no=1}
 ```
 
-效果：
-
-@import "./SYNTAX.pdf" {page_no=1}
+效果：导入的 PDF 页面在正文中居中显示（此处不再内嵌示例 PDF）。

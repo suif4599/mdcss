@@ -6,19 +6,19 @@ from typing import Any, Callable
 
 HOME = Path.home()
 SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent.parent  # two levels up from docs/src/
+PROJECT_ROOT = SCRIPT_DIR.parent
 DEFAULT_EXTENSIONS_ROOT = HOME / ".vscode" / "extensions"
 DEFAULT_OUTPUT = HOME / ".local" / "state" / "crossnote"
 CONFIG_DIR = PROJECT_ROOT / "config"
 CONFIG_FILE_NAME = "config.json"
 
 
-def load_config() -> dict[str, Any]:
+def load_config(config_dir: Path | None = None) -> dict[str, Any]:
     """Load user configuration from config/config.json.
 
     Returns a dict; missing file or parse errors result in an empty dict + warning.
     """
-    config_path = CONFIG_DIR / CONFIG_FILE_NAME
+    config_path = (config_dir or CONFIG_DIR) / CONFIG_FILE_NAME
     if not config_path.exists():
         return {}
 
@@ -161,9 +161,9 @@ def confirm_rule_count(
     return answer.strip().lower() in {"y", "yes"}
 
 
-def save_config(args: argparse.Namespace) -> None:
+def save_config(args: argparse.Namespace, config_dir: Path | None = None) -> None:
     """Write effective settings to config/config.json (nested group format)."""
-    config_path = CONFIG_DIR / CONFIG_FILE_NAME
+    config_path = (config_dir or CONFIG_DIR) / CONFIG_FILE_NAME
 
     def _set(d: dict[str, Any], dotted: str, value: Any) -> None:
         *parts, last = dotted.split(".")

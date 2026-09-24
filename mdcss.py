@@ -1,11 +1,3 @@
-import sys
-from pathlib import Path
-
-# The package lives at docs/src/ (repo restructure in flight): make the
-# entry point runnable from anywhere — nix derivations, the mdcss-bridge
-# wrapper, and a bare `python mdcss.py` — without external PYTHONPATH.
-sys.path.insert(0, str(Path(__file__).resolve().parent / "docs"))
-
 from src.config import (
     build_parser,
     confirm_rule_count,

@@ -1,6 +1,9 @@
 import re
 from pathlib import Path
 
+import cssbeautifier  # pyright: ignore[reportMissingImports]
+import jsbeautifier  # pyright: ignore[reportMissingImports]
+
 from src.config import VALID_FALLBACK_EFFECTS, VALID_FALLBACK_LAYOUTS
 from src.font import resolve_font_family, resolve_font_path
 from src.print_style import generate_print_style
@@ -317,19 +320,10 @@ def write_output(
     html_blocks: list[str] = [],
     header_blocks: list[str] = [],
 ) -> None:
-    try:
-        import jsbeautifier  # pyright: ignore[reportMissingImports]
-    except ImportError:
-        jsbeautifier = None
-    try:
-        import cssbeautifier  # pyright: ignore[reportMissingImports]
-    except ImportError:
-        cssbeautifier = None
     output_path.mkdir(parents=True, exist_ok=True)
     style_less = output_path / "style.less"
     text = "\n".join(map(lambda x: x.strip("\n"), blocks))
-    if cssbeautifier:
-        text = cssbeautifier.beautify(text, {"indent_size": 2})
+    text = cssbeautifier.beautify(text, {"indent_size": 2})
     style_less.write_text(text, encoding="utf-8")
     print(f"Generated style.less written to: {style_less.resolve()}")
     parser_blocks: list[str] = []
@@ -357,14 +351,12 @@ def write_output(
         parser_js = output_path / "parser.js"
         output = "\n" + "\n".join(map(lambda x: x.strip("\n"), parser_blocks)) + "\n"
         output = f"({{{output}}})"
-        if jsbeautifier:
-            output = jsbeautifier.beautify(output, {"indent_size": 2}) # pyright: ignore[reportArgumentType]
+        output = jsbeautifier.beautify(output, {"indent_size": 2}) # pyright: ignore[reportArgumentType]
         parser_js.write_text(output, encoding="utf-8")
         print(f"Generated parser.js written to: {parser_js.resolve()}")
     if header_blocks:
         header_js = "\n".join(map(lambda x: x.strip("\n"), header_blocks))
-        if jsbeautifier:
-            header_js = jsbeautifier.beautify(header_js, {"indent_size": 2}) # pyright: ignore[reportArgumentType]
+        header_js = jsbeautifier.beautify(header_js, {"indent_size": 2}) # pyright: ignore[reportArgumentType]
         header_html = f"<script type=\"text/javascript\">\n{header_js}\n</script>"
         header_html_path = output_path / "head.html"
         header_html_path.write_text(header_html, encoding="utf-8")

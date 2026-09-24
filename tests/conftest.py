@@ -1,9 +1,13 @@
 """Shared fixtures for pytest."""
 
+import sys
 from pathlib import Path
 from typing import Generator
 
 import pytest
+
+# Make `src.*` importable no matter which directory pytest was invoked from.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 @pytest.fixture
@@ -17,7 +21,7 @@ def run_from_project_root(project_root: Path, monkeypatch: pytest.MonkeyPatch) -
     """Run every test with the project root as the working directory.
 
     Makes the suite independent of the directory pytest was invoked from
-    (pyproject.toml's `pythonpath` covers the import side of the same issue).
+    (the sys.path insert above covers the import side of the same issue).
     """
     monkeypatch.chdir(project_root)
 

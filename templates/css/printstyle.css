@@ -111,7 +111,7 @@
     page-break-inside: avoid !important;
   }
   /* Table zebra stripes and header shading (printer-friendly light grays).
-     Placed after <variable>new_rules</variable> so theme rules cannot override it. */
+     Placed after the injected theme rules so they cannot override it. */
   html body table tbody tr:nth-child(2n) td {
     background: #f2f2f2 !important;
   }

@@ -2,30 +2,19 @@
 
 import json
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 
 import pytest
 
 
 # ---------------------------------------------------------------------------
-# Helper to temporarily move config files out of the way
+# Redirect CONFIG_DIR to a throwaway directory (never touch the real config/)
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def isolated_config(config_dir: Path) -> Generator[Path, None, None]:
-    """Backup config.json before test, restore after."""
-    original = config_dir / "config.json"
-    backup = None
-    if original.exists():
-        backup = config_dir / "config.json.bak"
-        original.rename(backup)
-    try:
-        yield config_dir
-    finally:
-        if original.exists():
-            original.unlink()
-        if backup and backup.exists():
-            backup.rename(original)
+def isolated_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    monkeypatch.setattr("src.config.CONFIG_DIR", tmp_path)
+    return tmp_path
 
 
 class TestLoadConfig:

@@ -119,6 +119,20 @@ def resolve_font_path(font_input: str | Path) -> Path:
             )
         return candidate.resolve()
 
+    # A path-shaped input that does not exist must fail loudly: fc-match
+    # answers any family query with some unrelated font, so a typo'd path
+    # would otherwise resolve silently to the wrong font.
+    looks_like_path = (
+        "/" in str(candidate)
+        or "\\" in str(candidate)
+        or candidate.suffix.lower() in SUPPORTED_FONT_EXTENSIONS
+    )
+    if looks_like_path:
+        raise FileNotFoundError(
+            f"Font file not found: {candidate}. To resolve by family name, "
+            "pass a plain name without separators or font extension."
+        )
+
     system = platform.system()
     if system == "Linux":
         return _resolve_via_fontconfig(str(font_input))

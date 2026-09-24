@@ -10,6 +10,7 @@ index-url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
 
 
 [tasks]
+test = "python -m pytest tests/"
 
 [dependencies]
 python = "3.12.*"
@@ -20,3 +21,4 @@ nodejs = ">=26.8.2,<26.9"
 
 [pypi-dependencies]
 jsbeautifier = ">=1.15.4, <2"
+cssbeautifier = ">=2.0.3, <3"

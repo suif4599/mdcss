@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import Any, Literal
 
-SCRIPT_DIR = Path(__file__).resolve().parent.parent.parent
+SCRIPT_DIR = Path(__file__).resolve().parent.parent
 TEMPLATE_DIR = SCRIPT_DIR / "templates"
 
 
@@ -16,6 +16,6 @@ def load_template(dir_: Literal["css", "parser", "docheader", "inkstone"], name:
         if not placeholder in content:
             raise ValueError(f"Placeholder '{placeholder}' not found in template '{file}'")
         content = content.replace(placeholder, str(value))
-    if re.match(r"<variable>\w+</variable>", content):
+    if re.search(r"<variable>\w+</variable>", content):
         raise ValueError(f"Unreplaced placeholders remain in template '{file}' after substitution")
     return content if content.endswith("\n") else content + "\n"
