@@ -12,4 +12,4 @@ config/config.json
 tools/node_modules/
 
 # pages site build artifact
-site/
+/site/
