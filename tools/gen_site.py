@@ -55,6 +55,12 @@ PAGE = """<!doctype html>
 </head>
 <body>
 <button class="theme-toggle" type="button" aria-label="切换深浅主题"></button>
+<header class="topbar">
+<a class="brand-link" href="#top">MdCSS</a>
+<button class="toc-toggle" type="button" aria-label="打开目录">☰</button>
+<button class="theme-toggle" type="button" aria-label="切换深浅主题"></button>
+</header>
+<div class="toc-scrim"></div>
 <nav class="toc">
 <div class="brand"><a href="index.html">MdCSS</a></div>
 @@NAV@@

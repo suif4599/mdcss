@@ -71,6 +71,26 @@ class TestSiteGeneration:
         assert 'class="toc-item sub"' in page
         assert "doc-link" not in page  # no multi-document nav machinery
 
+    def test_mobile_shell(self, tmp_path: Path) -> None:
+        sys.path.insert(0, str(TOOLS))
+        import gen_site
+
+        gen_site.generate(out_dir=tmp_path)
+        page = (tmp_path / "index.html").read_text(encoding="utf-8")
+        assert 'class="topbar"' in page
+        assert 'class="toc-toggle"' in page
+        assert 'class="toc-scrim"' in page
+        assert page.count('class="theme-toggle"') == 2  # desktop floating + topbar
+
+        chrome = (tmp_path / "chrome.css").read_text(encoding="utf-8")
+        assert "@media (max-width: 900px)" in chrome
+        assert "body.toc-open nav.toc" in chrome
+        assert "env(safe-area-inset-top)" in chrome
+        assert "[data-mdcss-cols]" in chrome  # columns stack on phones
+
+        site_js = (tmp_path / "site.js").read_text(encoding="utf-8")
+        assert "toc-open" in site_js and "Escape" in site_js
+
     def test_theme_system(self, tmp_path: Path) -> None:
         sys.path.insert(0, str(TOOLS))
         import gen_site

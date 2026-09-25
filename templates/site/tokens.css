@@ -11,6 +11,7 @@
   --r-xl: 16px;
 
   --dur-fast: 130ms;
+  --dur-slow: 340ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 
   --prose-size: 16px;
@@ -50,6 +51,9 @@
   --border-subtle: oklch(20% 0.01 265 / 7%);
   --border-default: oklch(20% 0.01 265 / 11%);
   --border-strong: oklch(20% 0.01 265 / 17%);
+  --scrim: oklch(35% 0.01 265 / 32%);
+  --shadow-modal: 0 0 0 1px oklch(20% 0.01 265 / 7%), 0 8px 16px -4px oklch(20% 0.01 265 / 8%),
+    0 24px 48px -12px oklch(20% 0.01 265 / 16%);
 
   --text-primary: oklch(21% 0.01 265);
   --text-secondary: oklch(44% 0.01 265);
@@ -91,6 +95,8 @@
   --border-subtle: oklch(100% 0 0 / 6%);
   --border-default: oklch(100% 0 0 / 10%);
   --border-strong: oklch(100% 0 0 / 17%);
+  --scrim: oklch(0% 0 0 / 55%);
+  --shadow-modal: 0 0 0 1px oklch(100% 0 0 / 7%), 0 24px 56px -16px oklch(0% 0 0 / 60%);
   --text-primary: oklch(93% 0.004 265);
   --text-secondary: oklch(72% 0.008 265);
   --text-tertiary: oklch(56% 0.009 265);

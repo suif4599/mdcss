@@ -92,3 +92,108 @@ main {
   border-color: var(--accent);
   color: var(--accent);
 }
+
+.topbar {
+  display: none;
+}
+
+.toc-scrim {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body > .theme-toggle {
+    display: none;
+  }
+
+  .topbar {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    align-items: center;
+    gap: 2px;
+    height: calc(48px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) 10px 0 16px;
+    background: color-mix(in oklab, var(--bg-base) 85%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .topbar .brand-link {
+    margin-right: auto;
+    color: var(--text-primary);
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .topbar button {
+    position: static;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: none;
+    border-radius: var(--r-md);
+    color: var(--text-tertiary);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .topbar button:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  nav.toc {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 20;
+    width: min(300px, 84vw);
+    padding-top: calc(20px + env(safe-area-inset-top));
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-modal);
+    transform: translateX(-102%);
+    transition: transform var(--dur-slow) var(--ease-out);
+  }
+
+  body.toc-open nav.toc {
+    transform: none;
+  }
+
+  body.toc-open {
+    overflow: hidden;
+  }
+
+  .toc-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 15;
+    background: var(--scrim);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+
+  body.toc-open .toc-scrim {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  main {
+    padding: 20px 16px calc(32px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 640px) {
+  .ink-prose [data-mdcss-cols] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
