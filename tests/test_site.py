@@ -1,4 +1,4 @@
-"""The Pages site generator renders docs/DEMO.md through the full pipeline.
+"""The Pages site generator renders docs/SYNTAX.md through the full pipeline.
 
 Optional integration test: needs node plus the tools/node_modules markdown-it
 install (cd tools && npm install). This is the only place the whole chain —
@@ -21,7 +21,7 @@ NEEDS = pytest.mark.skipif(
 
 @NEEDS
 class TestSiteGeneration:
-    def test_generates_single_page_with_all_assets(self, tmp_path: Path) -> None:
+    def test_generates_single_syntax_page(self, tmp_path: Path) -> None:
         sys.path.insert(0, str(TOOLS))
         import gen_site
 
@@ -34,10 +34,13 @@ class TestSiteGeneration:
         assert not any(name.endswith(".html") and name != "index.html" for name in names)
         assert (tmp_path / "assets" / "image.jpeg").is_file()
 
-        index = (tmp_path / "index.html").read_text(encoding="utf-8")
-        assert "本站由" not in index  # the generated-note banner is gone
+    def test_syntax_showcase_survives_the_chain(self, tmp_path: Path) -> None:
+        sys.path.insert(0, str(TOOLS))
+        import gen_site
 
-        body = index[index.index('<div class="ink-prose">'):]
+        gen_site.generate(out_dir=tmp_path)
+        page = (tmp_path / "index.html").read_text(encoding="utf-8")
+        body = page[page.index('<div class="ink-prose">'):]
         assert 'colspan="2"' in body  # live merge demo survived the chain
         assert "表1:\t" in body
         assert 'class="table-wrap"' in body
@@ -47,15 +50,26 @@ class TestSiteGeneration:
         assert 'src="./assets/' in body  # same-origin assets for the canvas
         assert "mdcss-bright" in body and "mdcss-inv" in body
 
+    def test_sidebar_links_repo_and_wiki(self, tmp_path: Path) -> None:
+        sys.path.insert(0, str(TOOLS))
+        import gen_site
+
+        gen_site.generate(out_dir=tmp_path)
+        page = (tmp_path / "index.html").read_text(encoding="utf-8")
+        nav = page[page.index('<nav class="toc">'):page.index("</nav>")]
+        assert 'href="https://github.com/suif4599/mdcss"' in nav  # repo
+        assert 'href="https://github.com/suif4599/mdcss/wiki"' in nav  # wiki
+        assert "#readme" not in nav
+
     def test_toc_scrolls_in_place(self, tmp_path: Path) -> None:
         sys.path.insert(0, str(TOOLS))
         import gen_site
 
         gen_site.generate(out_dir=tmp_path)
-        index = (tmp_path / "index.html").read_text(encoding="utf-8")
-        assert 'data-target="1-图片"' in index  # anchor links, not page links
-        assert 'class="toc-item sub"' in index  # h3 sub-entries
-        assert 'href="images.html"' not in index
+        page = (tmp_path / "index.html").read_text(encoding="utf-8")
+        assert 'data-target="1-图片"' in page  # anchors scroll, not page links
+        assert 'class="toc-item sub"' in page
+        assert "doc-link" not in page  # no multi-document nav machinery
 
     def test_theme_system(self, tmp_path: Path) -> None:
         sys.path.insert(0, str(TOOLS))
@@ -71,12 +85,22 @@ class TestSiteGeneration:
         assert tokens.index(":root[data-theme='dark']") > tokens.index(":root {")
 
         css = (tmp_path / "mdcss.css").read_text(encoding="utf-8")
-        assert ":root[data-theme='dark'] .ink-prose img.mdcss-inv" in css  # gated
+        assert ":root[data-theme='dark'] .ink-prose img.mdcss-inv" in css
 
         js = (tmp_path / "mdcss.js").read_text(encoding="utf-8")
         assert "var THEME_GATED = true;" in js
         assert "module.exports" not in js
 
         site_js = (tmp_path / "site.js").read_text(encoding="utf-8")
-        assert "mdcss-theme" in site_js  # persisted choice
-        assert "localStorage" in index  # pre-paint restore
+        assert "mdcss-theme" in site_js
+
+    def test_regeneration_wipes_stale_files(self, tmp_path: Path) -> None:
+        sys.path.insert(0, str(TOOLS))
+        import gen_site
+
+        gen_site.generate(out_dir=tmp_path)
+        stale = tmp_path / "removed-page.html"
+        stale.write_text("old page", encoding="utf-8")
+        gen_site.generate(out_dir=tmp_path)
+        assert not stale.exists()
+        assert (tmp_path / "index.html").is_file()

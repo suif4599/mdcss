@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - docs/DEMO.md
+      - docs/SYNTAX.md
       - docs/assets/**
       - templates/**
       - src/**

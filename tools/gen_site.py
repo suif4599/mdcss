@@ -1,16 +1,19 @@
-"""Generates the GitHub Pages site into site/ from docs/DEMO.md.
+"""Generates the GitHub Pages site into site/ from the repo's documents.
 
-The whole demo document goes through the real pipeline (pre fragments ->
+docs/SYNTAX.md goes through the real pipeline (pre fragments ->
 markdown-it -> post fragments, assembled by src.builder.build_parser_blocks)
 and lands on a single page with a sticky multi-level TOC that scrolls in
-place — no page switches, nothing to reload. The look is inkstone's: the
+place. Pages exists only because the syntax showcase needs rendered HTML;
+the written documentation lives on the wiki (linked from the sidebar, as the
+repo links both). The look is inkstone's: the
 renderer rules (callouts, code blocks, table wrappers, Prism highlighting)
 and the prose/token styles are borrowed from the inkstone source, and the
 mdcss rules come from the inkstone bridge CSS verbatim, dark-theme gate
 included: with the theme toggle (browser preference by default) the image
 effects follow the theme exactly like inkstone, restoring originals on
-light. site/ is a pure build artifact — gitignored, rebuilt by the Pages
-workflow on push; edit docs/DEMO.md, never the site.
+light. site/ is
+a pure build artifact — gitignored, rebuilt by the Pages workflow on push;
+edit docs/SYNTAX.md, never the site.
 
 Regenerate locally with: pixi run site   (then open site/index.html)
 """
@@ -33,12 +36,14 @@ RENDERER = ROOT / "tools" / "site_render.mjs"
 NODE = shutil.which("node")
 REPO = "https://github.com/suif4599/mdcss"
 
+WIKI = "https://github.com/suif4599/mdcss/wiki"
+
 PAGE = """<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>@@TITLE@@</title>
+<title>@@TITLE@@ · MdCSS</title>
 <script>
 (function () {
   var stored = localStorage.getItem('mdcss-theme');
@@ -54,13 +59,13 @@ PAGE = """<!doctype html>
 <body>
 <button class="theme-toggle" type="button" aria-label="切换深浅主题"></button>
 <nav class="toc">
-<div class="brand"><a href="#top">MdCSS</a></div>
+<div class="brand"><a href="index.html">MdCSS</a></div>
 @@NAV@@
 <div class="sep"></div>
 <a href="@@REPO@@">GitHub 仓库</a>
-<a href="@@REPO@@#readme">README</a>
+<a href="@@WIKI@@">Wiki</a>
 </nav>
-<main id="top">
+<main>
 <div class="ink-prose">
 @@BODY@@
 </div>
@@ -107,7 +112,7 @@ def runtime_js() -> str:
     return strip_test_hooks(block)
 
 
-def toc_nav(headings: list[dict]) -> str:
+def section_nav(headings: list[dict]) -> str:
     entries = []
     for heading in headings:
         if heading["level"] not in (2, 3):
@@ -130,14 +135,14 @@ def generate(out_dir: Path | None = None) -> list[Path]:
     (out_dir / "mdcss.js").write_text(runtime_js(), encoding="utf-8")
     shutil.copytree(ROOT / "docs" / "assets", out_dir / "assets")
 
-    source = (ROOT / "docs" / "DEMO.md").read_text(encoding="utf-8")
+    source = (ROOT / "docs" / "SYNTAX.md").read_text(encoding="utf-8")
     source = re.sub(r"\*\*目录\*\*：.*?(?=\n## )", "", source, flags=re.DOTALL)
     html, headings = render_document(source)
-
     page = (
-        PAGE.replace("@@TITLE@@", "MdCSS 演示文档")
-        .replace("@@NAV@@", toc_nav(headings))
+        PAGE.replace("@@TITLE@@", "语法预览")
+        .replace("@@NAV@@", section_nav(headings))
         .replace("@@REPO@@", REPO)
+        .replace("@@WIKI@@", WIKI)
         .replace("@@BODY@@", html.strip("\n"))
     )
     (out_dir / "index.html").write_text(page, encoding="utf-8")

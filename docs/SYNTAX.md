@@ -1,6 +1,6 @@
-# MdCSS 演示文档
+# MdCSS 语法文档
 
-本文用 MdCSS 的扩展语法写成：安装 MdCSS 并启用 `--enable-parser` 后，用 Markdown Preview Enhanced 预览本文件，即可看到每个特性的实际效果（GitHub 上只能看到源码）。语法的在线文档（本文的自动渲染）见 [GitHub Pages](https://suif4599.github.io/mdcss/)。
+本文是 MdCSS 的语法文档，用扩展语法写成：安装并启用 `--enable-parser` 后，用 Markdown Preview Enhanced 预览本文件，即可看到每个特性的实际效果（GitHub 上只能看到源码）；在线渲染版见 [GitHub Pages](https://suif4599.github.io/mdcss/)，安装与参数见 [Wiki](https://github.com/suif4599/mdcss/wiki)。
 
 > 验证多列滚动同步：打开 MPE 双窗口预览（编辑器与预览并排），编辑侧列内容时预览应保持不动，编辑主列（带 `!` 标记）内容时预览应跟随滚动。
 
@@ -77,7 +77,6 @@
 
 `I` 与 `M` 由运行时脚本（head.html 中的 canvas 处理器）在图片原始分辨率上逐像素完成，画质与原图完全一致；需要预览环境启用 head.html（MPE 预览）。分段判定基于局部背景亮度（min/max 邻域滤波），抗锯齿文字与细线会随其背景整体连续翻转，不产生灰晕或黑白断裂。若图片受跨域限制无法读取像素（如纯 file:// 页面），图片保持原样。Inkstone 桥接经 `mdcss-runtime.js` 运行时脚本同样支持 `I`/`M`：仅暗色主题（`:root[data-theme='dark']`）下生效，切回浅色主题自动还原为原图，处理结果按图缓存以跟随预览重渲。
 
-会在接下来的 2 节中说明。
 
 ### 单行多图布局
 
@@ -99,13 +98,9 @@
 
 `![19%r|.原图](./assets/colorwheel.png) ![19%ri|.反相](./assets/colorwheel.png) ![19%rI|.亮度两端互换](./assets/colorwheel.png) ![19%rm|.去除背景](./assets/colorwheel.png) ![19%rM|.亮部抠图](./assets/colorwheel.png)`
 
-效果：
+效果（请开启深色模式，`iImM` 四个滤镜会自动适配浏览器主题）：
 
 ![19%r|.原图](./assets/colorwheel.png) ![19%ri|.反相（实验性）](./assets/colorwheel.png) ![19%rI|.亮度两端互换（实验性）](./assets/colorwheel.png) ![19%rm|.去除背景（实验性）](./assets/colorwheel.png) ![19%rM|.亮部抠图＋暗部提亮（实验性）](./assets/colorwheel.png)
-
-效果截图（导出 PDF 使用）：
-
-![100|.效果截图](./assets/colorwhell-effect.png)
 
 多行多图只需重复多组 `r`，每行一组：
 
@@ -558,4 +553,4 @@ def resolve_extension_dir(
 @import "./file.pdf" {page_no=1}
 ```
 
-效果：导入的 PDF 页面在正文中居中显示（此处不再内嵌示例 PDF）。
+效果：导入的 PDF 页面在正文中居中显示。

@@ -5,7 +5,7 @@ The pre fragments (markdown -> markdown) run directly; the post fragments
 (html: true) capture — the shapes carry the exact paragraph/table/attribute
 structure the regexes are coupled to (data-source-line placement, table cell
 backslash handling, <p>/<table> adjacency). MPE's own crossnote renderer
-cannot be imported here; docs/DEMO.md is the manual crosscheck against the
+cannot be imported here; docs/SYNTAX.md is the manual crosscheck against the
 real preview. When a fixture starts drifting from a crossnote update,
 re-capture and re-bake.
 """
@@ -275,10 +275,10 @@ class TestPreZebraAndPdf:
 
 @needs_node
 class TestPreFixtures:
-    """Smoke: the self-demonstrating docs/DEMO.md passes the pre pipeline cleanly."""
+    """Smoke: the self-demonstrating docs/SYNTAX.md passes the pre pipeline cleanly."""
 
     def test_no_leftover_tokens(self, project_root: Path) -> None:
-        md = (project_root / "docs" / "DEMO.md").read_text(encoding="utf-8")
+        md = (project_root / "docs" / "SYNTAX.md").read_text(encoding="utf-8")
         out = pre(md)["markdown"]
         # fence tokens are restored within the pre pass; @MDCSS_BS_ tokens are
         # consumed later by the post pass (covered in TestPostTable) and are
@@ -286,7 +286,7 @@ class TestPreFixtures:
         assert "@@MDCSS_FENCE_BLOCK" not in out
 
     def test_demo_produces_column_grids(self, project_root: Path) -> None:
-        md = (project_root / "docs" / "DEMO.md").read_text(encoding="utf-8")
+        md = (project_root / "docs" / "SYNTAX.md").read_text(encoding="utf-8")
         assert "data-mdcss-cols" in pre(md)["markdown"]
 
 
