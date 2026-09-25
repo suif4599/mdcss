@@ -50,7 +50,7 @@ class TestSiteGeneration:
         assert 'src="./assets/' in body  # same-origin assets for the canvas
         assert "mdcss-bright" in body and "mdcss-inv" in body
 
-    def test_sidebar_links_repo_and_wiki(self, tmp_path: Path) -> None:
+    def test_sidebar_links_repo(self, tmp_path: Path) -> None:
         sys.path.insert(0, str(TOOLS))
         import gen_site
 
@@ -58,8 +58,8 @@ class TestSiteGeneration:
         page = (tmp_path / "index.html").read_text(encoding="utf-8")
         nav = page[page.index('<nav class="toc">'):page.index("</nav>")]
         assert 'href="https://github.com/suif4599/mdcss"' in nav  # repo
-        assert 'href="https://github.com/suif4599/mdcss/wiki"' in nav  # wiki
-        assert "#readme" not in nav
+        assert "/blob/" not in nav  # no source-file link, repo is enough
+        assert "/wiki" not in nav
 
     def test_toc_scrolls_in_place(self, tmp_path: Path) -> None:
         sys.path.insert(0, str(TOOLS))

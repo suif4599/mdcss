@@ -1,6 +1,6 @@
 # MdCSS 语法文档
 
-本文是 MdCSS 的语法文档，用扩展语法写成：安装并启用 `--enable-parser` 后，用 Markdown Preview Enhanced 预览本文件，即可看到每个特性的实际效果（GitHub 上只能看到源码）；在线渲染版见 [GitHub Pages](https://suif4599.github.io/mdcss/)，安装与参数见 [Wiki](https://github.com/suif4599/mdcss/wiki)。
+本文是 MdCSS 的语法文档，用扩展语法写成：安装并启用 `--enable-parser` 后，用 Markdown Preview Enhanced 预览本文件，即可看到每个特性的实际效果（GitHub 上只能看到源码）；在线渲染版见 [GitHub Pages](https://suif4599.github.io/mdcss/)，安装与参数见 [README](https://github.com/suif4599/mdcss#readme)。
 
 > 验证多列滚动同步：打开 MPE 双窗口预览（编辑器与预览并排），编辑侧列内容时预览应保持不动，编辑主列（带 `!` 标记）内容时预览应跟随滚动。
 

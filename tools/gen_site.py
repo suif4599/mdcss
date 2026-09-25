@@ -4,8 +4,7 @@ docs/SYNTAX.md goes through the real pipeline (pre fragments ->
 markdown-it -> post fragments, assembled by src.builder.build_parser_blocks)
 and lands on a single page with a sticky multi-level TOC that scrolls in
 place. Pages exists only because the syntax showcase needs rendered HTML;
-the written documentation lives on the wiki (linked from the sidebar, as the
-repo links both). The look is inkstone's: the
+the written documentation lives in the repo README (sidebar link). The look is inkstone's: the
 renderer rules (callouts, code blocks, table wrappers, Prism highlighting)
 and the prose/token styles are borrowed from the inkstone source, and the
 mdcss rules come from the inkstone bridge CSS verbatim, dark-theme gate
@@ -36,8 +35,6 @@ RENDERER = ROOT / "tools" / "site_render.mjs"
 NODE = shutil.which("node")
 REPO = "https://github.com/suif4599/mdcss"
 
-WIKI = "https://github.com/suif4599/mdcss/wiki"
-
 PAGE = """<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -63,7 +60,6 @@ PAGE = """<!doctype html>
 @@NAV@@
 <div class="sep"></div>
 <a href="@@REPO@@">GitHub 仓库</a>
-<a href="@@WIKI@@">Wiki</a>
 </nav>
 <main>
 <div class="ink-prose">
@@ -142,8 +138,7 @@ def generate(out_dir: Path | None = None) -> list[Path]:
         PAGE.replace("@@TITLE@@", "语法预览")
         .replace("@@NAV@@", section_nav(headings))
         .replace("@@REPO@@", REPO)
-        .replace("@@WIKI@@", WIKI)
-        .replace("@@BODY@@", html.strip("\n"))
+                .replace("@@BODY@@", html.strip("\n"))
     )
     (out_dir / "index.html").write_text(page, encoding="utf-8")
 
