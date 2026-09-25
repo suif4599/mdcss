@@ -21,45 +21,62 @@ NEEDS = pytest.mark.skipif(
 
 @NEEDS
 class TestSiteGeneration:
-    def test_generates_pages_and_assets_from_demo(self, tmp_path: Path) -> None:
+    def test_generates_single_page_with_all_assets(self, tmp_path: Path) -> None:
         sys.path.insert(0, str(TOOLS))
         import gen_site
 
         written = gen_site.generate(out_dir=tmp_path)
         names = {f.relative_to(tmp_path).as_posix() for f in written}
-        assert {"index.html", "chrome.css", "mdcss.css", "mdcss.js", "images.html", "tables.html"} <= names
+        assert {
+            "index.html", "tokens.css", "prose.css", "chrome.css", "site.js",
+            "mdcss.css", "mdcss.js",
+        } <= names
+        assert not any(name.endswith(".html") and name != "index.html" for name in names)
         assert (tmp_path / "assets" / "image.jpeg").is_file()
 
-        tables = (tmp_path / "tables.html").read_text(encoding="utf-8")
-        assert 'colspan="2"' in tables  # live merge demo survived the chain
-        assert "表1:\t" in tables
-
-        images = (tmp_path / "images.html").read_text(encoding="utf-8")
-        assert 'src="./assets/' in images  # same-origin assets for the canvas
-        assert "mdcss-bright" in images and "mdcss-inv" in images
-
-        columns = (tmp_path / "columns.html").read_text(encoding="utf-8")
-        assert "grid-template-columns" in columns
-
-        css = (tmp_path / "mdcss.css").read_text(encoding="utf-8")
-        assert css.startswith(".markdown-preview {")  # scoped like style.less
-        assert "img.mdcss-inv" in css
-
-        js = (tmp_path / "mdcss.js").read_text(encoding="utf-8")
-        assert "MutationObserver" in js
-        assert "module.exports" not in js  # test hook stripped from emission
-
         index = (tmp_path / "index.html").read_text(encoding="utf-8")
-        assert "docs/DEMO.md" in index  # generated-note points at the source
-        assert '<div class="markdown-preview">' in index
+        assert "本站由" not in index  # the generated-note banner is gone
 
-    def test_regeneration_wipes_stale_files(self, tmp_path: Path) -> None:
+        body = index[index.index('<div class="ink-prose">'):]
+        assert 'colspan="2"' in body  # live merge demo survived the chain
+        assert "表1:\t" in body
+        assert 'class="table-wrap"' in body
+        assert 'class="callout callout-tip"' in body
+        assert 'class="code-block-head"' in body
+        assert "token keyword" in body  # build-time Prism highlighting
+        assert 'src="./assets/' in body  # same-origin assets for the canvas
+        assert "mdcss-bright" in body and "mdcss-inv" in body
+
+    def test_toc_scrolls_in_place(self, tmp_path: Path) -> None:
         sys.path.insert(0, str(TOOLS))
         import gen_site
 
         gen_site.generate(out_dir=tmp_path)
-        stale = tmp_path / "removed-section.html"
-        stale.write_text("old page", encoding="utf-8")
+        index = (tmp_path / "index.html").read_text(encoding="utf-8")
+        assert 'data-target="1-图片"' in index  # anchor links, not page links
+        assert 'class="toc-item sub"' in index  # h3 sub-entries
+        assert 'href="images.html"' not in index
+
+    def test_theme_system(self, tmp_path: Path) -> None:
+        sys.path.insert(0, str(TOOLS))
+        import gen_site
+
         gen_site.generate(out_dir=tmp_path)
-        assert not stale.exists()
-        assert (tmp_path / "index.html").is_file()
+        index = (tmp_path / "index.html").read_text(encoding="utf-8")
+        assert "prefers-color-scheme: dark" in index  # browser default, pre-paint
+        assert 'class="theme-toggle"' in index
+
+        tokens = (tmp_path / "tokens.css").read_text(encoding="utf-8")
+        assert ":root[data-theme='dark']" in tokens
+        assert tokens.index(":root[data-theme='dark']") > tokens.index(":root {")
+
+        css = (tmp_path / "mdcss.css").read_text(encoding="utf-8")
+        assert ":root[data-theme='dark'] .ink-prose img.mdcss-inv" in css  # gated
+
+        js = (tmp_path / "mdcss.js").read_text(encoding="utf-8")
+        assert "var THEME_GATED = true;" in js
+        assert "module.exports" not in js
+
+        site_js = (tmp_path / "site.js").read_text(encoding="utf-8")
+        assert "mdcss-theme" in site_js  # persisted choice
+        assert "localStorage" in index  # pre-paint restore
