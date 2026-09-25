@@ -11,6 +11,7 @@ index-url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
 
 [tasks]
 test = "python -m pytest tests/"
+site = "python tools/gen_site.py"
 
 [dependencies]
 python = "3.12.*"

@@ -6,7 +6,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent.parent
 TEMPLATE_DIR = SCRIPT_DIR / "templates"
 
 
-def load_template(dir_: Literal["css", "parser", "docheader", "inkstone"], name: str, **kwargs: Any) -> str:
+def load_template(dir_: Literal["css", "parser", "docheader", "inkstone", "site"], name: str, **kwargs: Any) -> str:
     file = TEMPLATE_DIR / dir_ / name
     if not file.exists():
         raise FileNotFoundError(f"Template not found: {file}")

@@ -1,0 +1,8 @@
+{
+  "name": "mdcss-wiki-tools",
+  "private": true,
+  "description": "markdown-it for the wiki generator (mirrors MPE's renderer)",
+  "dependencies": {
+    "markdown-it": "^14.1.0"
+  }
+}

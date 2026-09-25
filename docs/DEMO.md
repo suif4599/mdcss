@@ -1,6 +1,8 @@
-# Syntax for MdCSS
+# MdCSS 演示文档
 
-可视化 Markdown 新增语法汇总。
+本文用 MdCSS 的扩展语法写成：安装 MdCSS 并启用 `--enable-parser` 后，用 Markdown Preview Enhanced 预览本文件，即可看到每个特性的实际效果（GitHub 上只能看到源码）。语法的在线文档（本文的自动渲染）见 [GitHub Pages](https://suif4599.github.io/mdcss/)。
+
+> 验证多列滚动同步：打开 MPE 双窗口预览（编辑器与预览并排），编辑侧列内容时预览应保持不动，编辑主列（带 `!` 标记）内容时预览应跟随滚动。
 
 **目录**：
 

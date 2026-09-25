@@ -4,10 +4,10 @@ The pre fragments (markdown -> markdown) run directly; the post fragments
 (html -> html) run against fixtures baked from a real markdown-it 14
 (html: true) capture — the shapes carry the exact paragraph/table/attribute
 structure the regexes are coupled to (data-source-line placement, table cell
-backslash halving, <p>/<table> adjacency). MPE's own crossnote renderer
-cannot be imported here; test_md/ is the manual crosscheck against the real
-preview. When a fixture starts drifting from a crossnote update, re-capture
-and re-bake.
+backslash handling, <p>/<table> adjacency). MPE's own crossnote renderer
+cannot be imported here; docs/DEMO.md is the manual crosscheck against the
+real preview. When a fixture starts drifting from a crossnote update,
+re-capture and re-bake.
 """
 
 import json
@@ -275,16 +275,18 @@ class TestPreZebraAndPdf:
 
 @needs_node
 class TestPreFixtures:
-    """Smoke: test_md/ manual-verification docs pass the pre pipeline cleanly."""
+    """Smoke: the self-demonstrating docs/DEMO.md passes the pre pipeline cleanly."""
 
-    @pytest.mark.parametrize("name", ["test_column.md", "test_image.md", "test_table.md"])
-    def test_no_leftover_fence_tokens(self, name: str, project_root: Path) -> None:
-        md = (project_root / "test_md" / name).read_text(encoding="utf-8")
+    def test_no_leftover_tokens(self, project_root: Path) -> None:
+        md = (project_root / "docs" / "DEMO.md").read_text(encoding="utf-8")
         out = pre(md)["markdown"]
+        # fence tokens are restored within the pre pass; @MDCSS_BS_ tokens are
+        # consumed later by the post pass (covered in TestPostTable) and are
+        # expected to be present here
         assert "@@MDCSS_FENCE_BLOCK" not in out
 
-    def test_column_fixture_produces_grids(self, project_root: Path) -> None:
-        md = (project_root / "test_md" / "test_column.md").read_text(encoding="utf-8")
+    def test_demo_produces_column_grids(self, project_root: Path) -> None:
+        md = (project_root / "docs" / "DEMO.md").read_text(encoding="utf-8")
         assert "data-mdcss-cols" in pre(md)["markdown"]
 
 
