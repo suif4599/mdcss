@@ -46,7 +46,7 @@ class TestSiteGeneration:
         assert 'class="table-wrap"' in body
         assert 'class="callout callout-tip"' in body
         assert 'class="code-block-head"' in body
-        assert "token keyword" in body  # build-time Prism highlighting
+        assert "token punctuation" in body  # build-time Prism highlighting
         assert 'src="./assets/' in body  # same-origin assets for the canvas
         assert "mdcss-bright" in body and "mdcss-inv" in body
 
@@ -67,7 +67,7 @@ class TestSiteGeneration:
 
         gen_site.generate(out_dir=tmp_path)
         page = (tmp_path / "index.html").read_text(encoding="utf-8")
-        assert 'data-target="1-图片"' in page  # anchors scroll, not page links
+        assert 'data-target="一图片"' in page  # anchors scroll, not page links
         assert 'class="toc-item sub"' in page
         assert "doc-link" not in page  # no multi-document nav machinery
 
