@@ -110,6 +110,13 @@
     break-inside: avoid !important;
     page-break-inside: avoid !important;
   }
+  /* Expand collapsed <details> (foldable callouts) for print without a
+     runtime script; ::details-content is Chromium 131+, older engines
+     keep them collapsed. */
+  details:not([open])::details-content {
+    display: block !important;
+    content-visibility: visible !important;
+  }
   /* Table zebra stripes and header shading (printer-friendly light grays).
      Placed after the injected theme rules so they cannot override it. */
   html body table tbody tr:nth-child(2n) td {

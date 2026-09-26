@@ -39,7 +39,7 @@ MdCSS 是一个生成器：读取配置，把模板片段组装成宿主可识�
 git clone https://github.com/suif4599/mdcss.git
 cd mdcss
 cp config/config.example.json config/config.json   # 按需修改主题与字体
-pixi run python mdcss.py --enable-parser --enable-header
+pixi run python mdcss.py --enable-parser
 ```
 
 生成后在 VS Code 中执行 `Developer: Reload Window`，预览 / Open in Browser 即生效。`--main-css` 与 `--codeblock-css` 必需：CLI 未提供时从 `config/config.json` 读取，示例配置已含默认值，因此通常可不传；两处都没有则报错。一个较完整的示例：
@@ -80,8 +80,6 @@ inputs.mdcss.url = "github:suif4599/mdcss";
 
     enableParser = true;  # 图片控制语法 / 表格合并 / 多列 / 标题编号等
     cssFallbackFeatures = [ "r" "i" ];  # 纯 CSS 回退覆盖的布局/效果 token（enableParser = false 时生效，可选）
-    enableHeader = true;  # head.html 注入
-    expandDetail = true;  # 打印时自动展开 <details>（需 enableHeader）
 
     # 推荐显式指定扩展目录，避免运行时去 ~/.vscode/extensions 匹配
     extensionDir = "${pkgs.vscode-extensions.shd101wyy.markdown-preview-enhanced}/share/vscode/extensions/shd101wyy.markdown-preview-enhanced";
@@ -120,13 +118,11 @@ mdcss-bridge --emit-inkstone ~/inkstone  # 生成 inkstone 桥接产物
 | `--extensions-root` | `~/.vscode/extensions` | VS Code 扩展根目录 |
 | `--extension-pattern` | `shd101wyy.markdown-preview-enhanced-*` | 匹配 MPE 扩展目录的 glob |
 | `--extension-dir` | `None` | 显式指定扩展目录（覆盖前两个参数） |
-| `--enable-parser` | `False` | 启用 parser.js 增强功能（图片控制语法、表格合并、多列、标题编号、缩进等） |
+| `--enable-parser` | `False` | 启用 parser.js 增强功能（图片控制语法、表格合并、多列、标题编号、缩进等），并自动向 head.html 注入 `I`/`M` 运行时处理器 |
 | `--css-fallback-features` | `""` | 纯 CSS 模式（未启用 `--enable-parser`）下额外覆盖的布局/效果 token，逗号分隔：`r`/`L`/`R`/`Lf`/`Rf`/`i`/`m`。空 = 仅宽度回退（100 条规则）；生成的规则数超过 200 时需要确认 |
 | `--yes` | `False` | 跳过规则数确认提示（无人值守场景，如 nix 构建；非交互且无此参数时直接报错退出） |
 | `--invert-bounds` | `32,239` | `I` 效果的默认亮度阈值 `lo,hi`（8-bit）：低于 `lo` 或高于 `hi` 的像素亮度互换；单图可用 `I(lo,hi)` 覆盖 |
 | `--matte-bounds` | `64,239` | `M` 效果的默认亮度阈值 `lo,hi`：低于 `lo` 的像素提亮、高于 `hi` 的像素透明；单图可用 `M(lo,hi)` 覆盖 |
-| `--enable-header` | `False` | 启用 head.html 注入（`--expand-detail`，以及 `--enable-parser` 时自动包含的 I/M 运行时处理器） |
-| `--expand-detail` | `False` | 打印时自动展开 `<detail>` 标签（需要 `--enable-header`） |
 | `--enable-table-horizontal-scroll` | `False` | 允许宽表格水平滚动（默认强制换行避免滚动） |
 | `--auto-count` | `none, chinese, number, number, latin, roman` | 标题编号样式，逗号分隔的 6 个值对应 h1-h6，支持 `number`/`latin`/`latinUpper`/`roman`/`romanUpper`/`chinese`/`none` |
 | `--emit-inkstone` | `None` | 生成 inkstone 桥接产物到指定的 inkstone 仓库路径后退出；复用 `--auto-count` 与 `--enable-table-caption` |
@@ -162,7 +158,7 @@ python mdcss.py --emit-inkstone <inkstone-repo>
 
 - 图片效果统一改为跟随浏览器主题：仅 `:root[data-theme='dark']` 下生效（MPE 中是「预览生效、`@media print` 重置」）。其中 `i` 反相 / `m` 去背景由 CSS 规则门控；`I` 亮度反转 / `M` 亮部抠图为运行时 canvas 效果，由 `mdcss-runtime.js` 在渲染后的 DOM 上处理，切回浅色主题时自动还原为原图。
 - 行号账本（`data-source-line` 重映射）移植为 inkstone 的 `data-line` 属性名。
-- 不桥接：字体、打印/导出样式、主题 CSS、head.html 的其余脚本（如 expand_detail）、`@import` PDF、uri 双重编码修复
+- 不桥接：字体、打印/导出样式、主题 CSS、`@import` PDF、uri 双重编码修复
 
 各效果的实际表现可在 [Pages 站点](https://suif4599.github.io/mdcss/)开启深色主题对照（同一套门控逻辑）。
 

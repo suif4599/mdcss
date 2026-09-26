@@ -197,8 +197,8 @@ def save_config(args: argparse.Namespace, config_dir: Path | None = None) -> Non
         _set(data, dotted, getattr(args, key, None))
 
     # Boolean flags
-    for key in ["expand_detail", "enable_parser",
-                "enable_header", "enable_table_horizontal_scroll",
+    for key in ["enable_parser",
+                "enable_table_horizontal_scroll",
                 "enable_table_caption"]:
         val = getattr(args, key, None)
         if val:
@@ -265,12 +265,6 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
         type=Path,
         default=_resolve_path(_nested_get(cfg, "paths.extension_dir")),
         help="Explicit extension directory (overrides pattern matching).",
-    )
-    parser.add_argument(
-        "--expand-detail",
-        action="store_true",
-        default=_nested_get(cfg, "features.expand_detail", False),
-        help="Expand details in print mode automatically.",
     )
     parser.add_argument(
         "--font",
@@ -343,12 +337,6 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
         action=argparse.BooleanOptionalAction,
         default=_nested_get(cfg, "features.enable_table_caption", True),
         help="Render \"Table: caption\" as a numbered figure caption below tables (--no-enable-table-caption to disable).",
-    )
-    parser.add_argument(
-        "--enable-header",
-        action="store_true",
-        default=_nested_get(cfg, "features.enable_header", False),
-        help="Generate features that require head.html support.",
     )
     parser.add_argument(
         "--enable-table-horizontal-scroll",

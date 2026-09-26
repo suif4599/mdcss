@@ -25,7 +25,7 @@ class TestLoadTemplate:
     def test_load_docheader_template(self, template_dir: Path) -> None:
         from src.template import load_template
 
-        result = load_template("docheader", "expand_detail.js")
+        result = load_template("docheader", "image_effects.js")
         assert isinstance(result, str)
         assert len(result) > 0
 

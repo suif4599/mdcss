@@ -91,7 +91,7 @@ MdCSS 将其扩展为：
 `I` 与 `M` 可以指定生效阈值：`I` 互换亮度低于下界或高于上界的像素，`M` 提亮低于下界的像素、将高于上界的像素设为透明。省略时使用全局默认（`I` 为 32,239，`M` 为 64,239），可通过 `--invert-bounds` / `--matte-bounds` 配置默认值
 
 > [!NOTE]
-> `I`/`M` 由 head.html 中的运行时 canvas 处理器在图片原始分辨率上逐像素完成，无需 `--enable-header`（随 `--enable-parser` 自动注入）；若图片因跨域限制无法读取像素，则保持原样
+> `I`/`M` 由 head.html 中的运行时 canvas 处理器（随 `--enable-parser` 自动注入）在图片原始分辨率上逐像素完成；若图片因跨域限制无法读取像素，则保持原样
 > crossnote 自 0.9.31 起在预览与导出中剥离 head.html 的脚本，但 0.9.36 之前对仅含脚本的 head.html 存在空回退漏洞，剥离并未实际生效——MPE 0.8.30 至 0.8.35（含 nixpkgs 当前版本）中 `I`/`M` 正常工作；MPE 0.8.36 起内联脚本被真正剥除，`I`/`M` 在 MPE 预览与导出中失效，仅 inkstone 桥接与 GitHub Pages 站点不受影响
 
 > [!NOTE]
@@ -433,7 +433,7 @@ MPE 导出的 PDF 倾向于不让代码块换页，这会导致大量的页内�
 
 ## .语法速查
 
-本章按「启用开关」汇总全部功能，便于快速查询。开关均由生成器（`mdcss.py` / `mdcss-bridge`）控制，详见 README 的参数说明：`--enable-parser` 生成 parser.js（markdown 渲染前后处理管线），`--enable-header` 生成 head.html（运行时脚本注入），`--css-fallback-features` 在纯 CSS 模式下为指定 token 生成回退规则。各语法章节开头的引用块也标注了对应要求
+本章按「启用开关」汇总全部功能，便于快速查询。开关均由生成器（`mdcss.py` / `mdcss-bridge`）控制，详见 README 的参数说明：`--enable-parser` 生成 parser.js（markdown 渲染前后处理管线）与 head.html（`I`/`M` 运行时脚本），`--css-fallback-features` 在纯 CSS 模式下为指定 token 生成回退规则。各语法章节开头的引用块也标注了对应要求
 
 ### .纯 CSS
 
@@ -447,6 +447,7 @@ MPE 导出的 PDF 倾向于不让代码块换页，这会导致大量的页内�
 - 代码行号排版修复（仅打印）
 - 长代码不另起一页（仅打印）
 - Callout 打印不跨页（仅打印）
+- 打印展开折叠 Callout（仅打印，Chromium 131+，旧引擎保持折叠）
 
 纯 CSS 模式（未启用 parser）下，还可通过 `--css-fallback-features` 为布局字母 `r`/`L`/`R`/`Lf`/`Rf` 与效果字母 `i`/`m` 生成回退规则（规则数随 token 组合增长，超过 200 条时需 `--yes` 确认）
 
@@ -462,16 +463,10 @@ MPE 导出的 PDF 倾向于不让代码块换页，这会导致大量的页内�
 - 多列布局（`|||-`/`|||`/`-|||`）
 - 自动标题编号（标题前缀 `.`，`--auto-count` 配置样式）
 - 段落缩进（`@indent`/`<indent>`）
-- `I`/`M` 图片效果（canvas 运行时随 `--enable-parser` 自动写入 head.html，无需 `--enable-header`；MPE 0.8.36 起受脚本剥离影响，见下方 NOTE）
-
-### .需要 header
-
-启用 `--enable-header` 与 `--expand-detail` 后生效（仅 MPE，inkstone 不桥接该脚本）：
-
-- 打印/导出时自动展开 Callout（同样受下方 NOTE 影响）
+- `I`/`M` 图片效果（canvas 运行时随 `--enable-parser` 自动写入 head.html；MPE 0.8.36 起受脚本剥离影响，见下方 NOTE）
 
 > [!NOTE]
-> MPE 0.8.36 起内联脚本被移除，`I`/`M` 与打印展开 Callout 将在 MPE 预览/导出中失效，仅 inkstone 桥接与 GitHub Pages 不受影响
+> MPE 0.8.36 起内联脚本被真正剥除，`I`/`M` 在 MPE 预览与导出中失效，仅 inkstone 桥接与 GitHub Pages 站点不受影响
 
 ### .MPE 专有
 
@@ -500,5 +495,5 @@ MPE 导出的 PDF 倾向于不让代码块换页，这会导致大量的页内�
 - Callout 打印不跨页
 - 表格打印配色（固定浅灰实色）
 - `i`/`m` 效果还原为原图
-- 打印自动展开 Callout（`--enable-header` + `--expand-detail`）
+- 打印展开折叠 Callout
 - 非 ASCII 文件名修复（只影响「Open in Browser」与导出 HTML，预览本身不受影响）

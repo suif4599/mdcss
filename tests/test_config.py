@@ -73,7 +73,6 @@ class TestBuildParser:
             "extensions_root",
             "extension_pattern",
             "extension_dir",
-            "expand_detail",
             "font",
             "code_font",
             "main_css",
@@ -81,7 +80,6 @@ class TestBuildParser:
             "print_margin",
             "enable_parser",
             "enable_table_caption",
-            "enable_header",
             "enable_table_horizontal_scroll",
             "auto_count",
             "output",
@@ -125,9 +123,7 @@ class TestSaveConfig:
             auto_count=None,
             enable_parser=True,
             enable_table_caption=True,
-            enable_header=False,
             enable_table_horizontal_scroll=False,
-            expand_detail=False,
             save_config=False,
         )
         save_config(args)

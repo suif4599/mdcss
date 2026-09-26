@@ -26,8 +26,6 @@
     ++ lib.optionals (cfg.codeFont != null) ["--code-font" cfg.codeFont]
     ++ lib.optionals (cfg.headingUnderline != "") ["--heading-underline" cfg.headingUnderline]
     ++ lib.optional cfg.enableParser "--enable-parser"
-    ++ lib.optional cfg.enableHeader "--enable-header"
-    ++ lib.optional cfg.expandDetail "--expand-detail"
     ++ lib.optional cfg.enableTableHorizontalScroll "--enable-table-horizontal-scroll"
     ++ lib.optional cfg.enableTableCaption "--enable-table-caption"
     ++ lib.optional (!cfg.enableTableCaption) "--no-enable-table-caption"
@@ -183,21 +181,6 @@ in {
       type = lib.types.bool;
       default = false;
       description = "Generate features that require parser.js support.";
-    };
-
-    enableHeader = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = "Generate features that require head.html support.";
-    };
-
-    expandDetail = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = ''
-        Expand <literal>&lt;details&gt;</literal> in print mode automatically
-        (requires <option>enableHeader</option>).
-      '';
     };
 
     enableTableHorizontalScroll = lib.mkOption {

@@ -101,11 +101,6 @@ def main() -> None:
         parse_blocks, html_blocks = [], []
 
     header_blocks: list[str] = []
-    if args.enable_header:
-        if args.expand_detail:
-            header_blocks.append(
-                load_template("docheader", "expand_detail.js")
-            )
     if args.enable_parser:
         # Runtime canvas processor for the I/M effects; inject the
         # configured thresholds (THEME_GATED stays off for MPE).
