@@ -19,6 +19,8 @@ from src.builder import (
 )
 from src.inkstone import write_inkstone_output
 
+IMAGE_EFFECTS_SCRIPT_NAME = "mdcss_image_effects.js"
+
 
 def main() -> None:
     config = load_config()
@@ -101,18 +103,22 @@ def main() -> None:
         parse_blocks, html_blocks = [], []
 
     header_blocks: list[str] = []
+    header_script_files: list[tuple[str, str]] = []
     if args.enable_parser:
         # Runtime canvas processor for the I/M effects; inject the
         # configured thresholds (THEME_GATED stays off for MPE).
-        header_blocks.append(
-            inject_image_effects_defaults(
-                load_template("docheader", "image_effects.js"),
-                invert_bounds,
-                matte_bounds,
-            )
+        effects_js = inject_image_effects_defaults(
+            load_template("docheader", "image_effects.js"),
+            invert_bounds,
+            matte_bounds,
         )
+        header_blocks.append(effects_js)
+        header_script_files.append((IMAGE_EFFECTS_SCRIPT_NAME, effects_js))
 
-    write_output(output_path, blocks, parse_blocks, html_blocks, header_blocks)
+    write_output(
+        output_path, blocks, parse_blocks, html_blocks,
+        header_blocks, header_script_files,
+    )
 
 
 if __name__ == "__main__":

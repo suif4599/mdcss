@@ -330,6 +330,7 @@ def write_output(
     parse_blocks: list[str] = [],
     html_blocks: list[str] = [],
     header_blocks: list[str] = [],
+    header_script_files: list[tuple[str, str]] = [],
 ) -> None:
     output_path.mkdir(parents=True, exist_ok=True)
     style_less = output_path / "style.less"
@@ -371,6 +372,14 @@ def write_output(
         )
         header_js = jsbeautifier.beautify(header_js, {"indent_size": 2}) # pyright: ignore[reportArgumentType]
         header_html = f"<script type=\"text/javascript\">\n{header_js}\n</script>"
+        # File twin of the inline script: crossnote >= 0.9.36 strips inline scripts but (with the MPE patch) loads this src from the config dir; <= 0.9.35 keeps the inline copy and this tag 404s harmlessly.
+        for name, content in header_script_files:
+            script_path = output_path / name
+            script_path.write_text(
+                strip_test_hooks(content.strip("\n")) + "\n", encoding="utf-8"
+            )
+            header_html += f'\n<script src="{name}"></script>'
+            print(f"Generated {name} written to: {script_path.resolve()}")
         header_html_path = output_path / "head.html"
-        header_html_path.write_text(header_html, encoding="utf-8")
+        header_html_path.write_text(header_html + "\n", encoding="utf-8")
         print(f"Generated head.html written to: {header_html_path.resolve()}")

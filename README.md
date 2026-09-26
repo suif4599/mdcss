@@ -55,7 +55,7 @@ pixi run python mdcss.py \
 
 ### flake
 
-仓库本身是一个 flake，提供 Home Manager module（`homeManagerModules.mdcss`），无需手动 fetchgit：
+仓库本身是一个 flake，提供两个 Home Manager module：`homeManagerModules.mdcss`（样式生成与部署）和 `homeManagerModules.markdown-preview-enhanced`（打好补丁的 MPE 扩展），无需手动 fetchgit：
 
 ```nix
 # flake.nix
@@ -63,9 +63,24 @@ inputs.mdcss.url = "github:suif4599/mdcss";
 ```
 
 ```nix
-# Home Manager 配置
 {
-  imports = [inputs.mdcss.homeManagerModules.mdcss];
+  imports = [
+    developInputs.mdcss.homeManagerModules.mdcss
+    developInputs.mdcss.homeManagerModules.markdown-preview-enhanced
+  ];
+
+  home.packages = [
+    (developPkgs.vscode-with-extensions.override {
+      vscode = vscodium-patched;
+      vscodeExtensions = with developPkgs.vscode-extensions; [
+        # 如需 MPE >= 0.8.36，则需要使用 MdCSS 提供的 patch 版本
+        config.programs.markdown-preview-enhanced.finalPackage
+      ];
+    })
+  ];
+
+  # 启用 patch 版本
+  programs.markdown-preview-enhanced.enable = true;
 
   services.mdcss = {
     enable = true;
@@ -79,10 +94,6 @@ inputs.mdcss.url = "github:suif4599/mdcss";
     codeFont = "${some-font-pkg}/share/fonts/....ttf";  # 代码块字体
 
     enableParser = true;  # 图片控制语法 / 表格合并 / 多列 / 标题编号等
-    cssFallbackFeatures = [ "r" "i" ];  # 纯 CSS 回退覆盖的布局/效果 token（enableParser = false 时生效，可选）
-
-    # 推荐显式指定扩展目录，避免运行时去 ~/.vscode/extensions 匹配
-    extensionDir = "${pkgs.vscode-extensions.shd101wyy.markdown-preview-enhanced}/share/vscode/extensions/shd101wyy.markdown-preview-enhanced";
   };
 }
 ```
@@ -132,6 +143,24 @@ mdcss-bridge --emit-inkstone ~/inkstone  # 生成 inkstone 桥接产物
 
 - MPE 以工作区 `.crossnote/` 中的文件**优先于**全局配置目录：若工作区存在 `.crossnote/parser.js`，部署到全局的版本会被遮蔽、不生效。
 - MPE 仅在预览引擎初始化时读取 parser.js，重新生成后需执行 `Developer: Reload Window` 才能在预览 / Open in Browser 中生效。
+
+### MPE ≥ 0.8.36：手动补丁恢复预览脚本
+
+> crossnote 自 0.9.36（MPE 0.8.36）起真正剥离 head.html 的脚本，`I`/`M` 图片效果在 MPE 预览中失效。crossnote 为此设计了 `trustedScriptRoots` 机制（放行宿主指定的可信目录中的文件型脚本），但 MPE 一直未使用它
+
+MdCSS 提供一个补丁脚本补上这一行赋值
+
+```bash
+pixi run python mdcss.py --enable-parser ...   # 正常部署（head.html 会同时带内联与文件型脚本）
+pixi run python tools/patch_mpe.py             # 备份并补丁 out/native/extension.js
+```
+
+然后在 VS Code 用户设置中开启 `markdown-preview-enhanced.enablePreviewScripts`
+
+注意事项：
+
+- MPE 每次更新都会覆盖补丁，更新后需重新执行 `tools/patch_mpe.py`（幂等，可重复运行）。
+- MPE ≤ 0.8.35 无需补丁：脚本经空回退漏洞照常运行，脚本会直接跳过并提示。
 
 ## Inkstone 桥接
 

@@ -304,6 +304,19 @@ class TestWriteOutput:
         assert "@MDCSS_TEST_HOOK_" not in head
         assert "MutationObserver" in head
 
+    def test_header_script_files_get_file_and_src_tag(self, tmp_output_dir: Path) -> None:
+        from src.builder import write_output
+
+        write_output(
+            tmp_output_dir, [],
+            header_blocks=["// inline"],
+            header_script_files=[("mdcss_image_effects.js", "// runtime\n")],
+        )
+        head = (tmp_output_dir / "head.html").read_text(encoding="utf-8")
+        script = (tmp_output_dir / "mdcss_image_effects.js").read_text(encoding="utf-8")
+        assert head.index("<script type=\"text/javascript\">") < head.index('<script src="mdcss_image_effects.js">')
+        assert script == "// runtime\n"
+
     def test_no_parser_when_no_blocks(self, tmp_output_dir: Path) -> None:
         from src.builder import write_output
 

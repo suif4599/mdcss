@@ -152,7 +152,8 @@ in {
       description = ''
         Explicit markdown-preview-enhanced extension directory. Preferred
         over <option>extensionsRoot</option> + <option>extensionPattern</option>
-        for Nix usage, e.g.:
+        for Nix usage (the build sandbox cannot read ~/.vscode/extensions);
+        set automatically by the markdown-preview-enhanced module. Example:
         <literal>"''${pkgs.vscode-extensions.shd101wyy.markdown-preview-enhanced}/share/vscode/extensions/shd101wyy.markdown-preview-enhanced"</literal>
       '';
     };
