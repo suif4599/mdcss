@@ -27,7 +27,9 @@ def run_node(script: str) -> dict:
 
 
 def node_prelude() -> str:
-    return f"import m from {str(TEMPLATE)!r};\n"
+    # A bare Windows path (D:\...) is not a valid ESM specifier; the loader
+    # only accepts file:// URLs, which as_uri() produces on every platform.
+    return f"import m from {TEMPLATE.as_uri()!r};\n"
 
 
 class TestSmoke:
