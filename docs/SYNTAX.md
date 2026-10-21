@@ -174,16 +174,17 @@ MdCSS 将其扩展为：
 > 需要 parser；MPE 与 inkstone 桥接均支持
 
 当 `--enable-parser` 启用时，在第二个 `|` 分隔段写图注，前导 `.` 会被替换成递增的 `图N:`。第三个分隔段为真实 alt
+图注内容按行内 Markdown 渲染，可以直接书写公式，例如 `![30%|.$\epsilon$=1e-10](img/1.png)`
 
 对于 `r` 样式的多图布局：
 - **子图标题**开头的 `.` 会被替换成 `(a)(b)(c)` 递增字母编号（按组内顺序，每组从 `(a)` 重新开始），**不占用全局图号**
 - **整体标题**（写在第一个子图的图注 `(.总标题)` 中）开头的 `.` 仍使用 `图N:` 全局编号
 
-例如：`![40%ri|.子图A(.总标题)](./assets/image.jpeg) ![25%ri|.子图B](./assets/image.jpeg)`
+例如：`![40%ri|.子图A(.总标题也支持 $\LaTeX$)](./assets/image.jpeg) ![25%ri|.子图B](./assets/image.jpeg)`
 
 效果
 
-![40%ri|.子图A(.总标题)](./assets/image.jpeg) ![25%ri|.子图B](./assets/image.jpeg)
+![40%ri|.子图A(.总标题也支持 $\LaTeX$)](./assets/image.jpeg) ![25%ri|.子图B](./assets/image.jpeg)
 
 ## .表格
 
@@ -226,7 +227,7 @@ MdCSS 将其扩展为：
 |||-
 
 ```markdown
-Table: .这是一个表格
+Table: .表格标题支持 $\LaTeX$ 公式
 
 | 第 1 列 | 第 2 列 |
 | --- | --- |
@@ -235,7 +236,7 @@ Table: .这是一个表格
 
 |||
 
-Table: .这是一个表格
+Table: .表格标题支持 $\LaTeX$ 公式
 
 | 第 1 列 | 第 2 列 |
 | --- | --- |

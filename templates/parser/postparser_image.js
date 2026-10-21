@@ -30,6 +30,39 @@ const MDCSS_EFFECT_CLASS = {
     M: 'mdcss-matte',
 };
 
+// Caption markers written by preparser_caption.js are replaced by tokens
+// here so the later passes can move their rendered content into figures
+// without re-parsing nested (math) markup.
+const __mdcssCaptionStore = [];
+
+function __mdcssCaptionEnd(source, from) {
+    const tags = /<\/?span\b[^>]*>/gi;
+    tags.lastIndex = from;
+    let depth = 1;
+    let match;
+    while ((match = tags.exec(source))) {
+        depth += match[0][1] === '/' ? -1 : 1;
+        if (depth === 0) return match.index;
+    }
+    return -1;
+}
+
+function __mdcssStashCaptions(source) {
+    const open = /<span\b[^>]*\bclass="[^"]*\bmdcss-(?:figcap|tablecap)\b[^"]*"[^>]*>/gi;
+    let out = '';
+    let last = 0;
+    let match;
+    while ((match = open.exec(source))) {
+        const end = __mdcssCaptionEnd(source, open.lastIndex);
+        if (end < 0) break;
+        const index = __mdcssCaptionStore.push(source.slice(open.lastIndex, end)) - 1;
+        out += `${source.slice(last, match.index)}@@MDCSS_CAP_${index}@@`;
+        last = end + '</span>'.length;
+        open.lastIndex = last;
+    }
+    return out + source.slice(last);
+}
+
 function parseImageAlt(alt) {
     if (!alt) return null;
     const parts = alt.split('|');
@@ -130,6 +163,8 @@ function mergeClassAttr(imgTag, newClasses) {
     }
     return appendAttr(imgTag, `class="${newClasses.join(' ')}"`);
 }
+
+html = __mdcssStashCaptions(html);
 
 html = html.replace(/<img\b[^>]*>/gi, (imgTag) => {
     const altMatch = imgTag.match(/\balt=(['"])(.*?)\1/i);

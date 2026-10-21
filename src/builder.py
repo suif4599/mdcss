@@ -257,6 +257,7 @@ PRE_PASSES: tuple[tuple[str, str], ...] = (
     ("preparser_fence_extract.js", "both"),
     ("preparser_tablecell.js", "both"),
     ("preparser_zebra.js", "both"),
+    ("preparser_caption.js", "both"),
     ("preparser_pdf.js", "mpe"),
     ("preparser_titleprefix.js", "both"),
     ("preparser_column.js", "both"),

@@ -256,10 +256,10 @@ class TestPreTableCell:
 @needs_node
 class TestPreZebraAndPdf:
     def test_zebra_tag_normalized_to_sentinel(self) -> None:
-        assert "Table@zebra@: .cap" in pre("Table<zebra>: .cap\n")["markdown"]
+        assert 'Table@zebra@: <span class="mdcss-tablecap">.cap</span>' in pre("Table<zebra>: .cap\n")["markdown"]
 
     def test_zebra_tag_case_insensitive(self) -> None:
-        assert "Table@nozebra@: x" in pre("TABLE<NOZEBRA>: x\n")["markdown"]
+        assert 'Table@nozebra@: <span class="mdcss-tablecap">x</span>' in pre("TABLE<NOZEBRA>: x\n")["markdown"]
 
     def test_pdf_import_args_preserved_verbatim(self) -> None:
         out = pre('@import "./doc.pdf" {page_no=1}\n')["markdown"]
@@ -271,6 +271,36 @@ class TestPreZebraAndPdf:
         out = pre('@import "./plain.pdf"\n')["markdown"]
         assert '@import "./plain.pdf"' in out
         assert "undefined" not in out  # regression: used to emit {undefined}
+
+
+@needs_node
+class TestPreCaption:
+    """Captions become inline markers so markdown (and math) renders them."""
+
+    def test_image_caption_marker(self) -> None:
+        out = pre("![30%rM|.$\\epsilon$=1e-10](img/1.png)\n")["markdown"]
+        assert out.startswith("![30%rM|.$\\epsilon$=1e-10](img/1.png)")
+        assert '<span class="mdcss-figcap">.$\\epsilon$=1e-10</span>' in out
+
+    def test_image_without_caption_untouched(self) -> None:
+        for src in ("![40%](x.png)\n", "![plain alt](x.png)\n", "![a|b](x.png)\n"):
+            assert pre(src)["markdown"] == src
+
+    def test_image_caption_inside_inline_code_untouched(self) -> None:
+        src = "`![40%|.cap](x.png)`\n"
+        assert pre(src)["markdown"] == src
+
+    def test_image_caption_inside_fence_untouched(self) -> None:
+        out = pre("```\n![40%|.cap](x.png)\n```\n")["markdown"]
+        assert "mdcss-figcap" not in out
+
+    def test_table_caption_marker(self) -> None:
+        out = pre("Table: .$\\epsilon$=1e-10\n")["markdown"]
+        assert 'Table: <span class="mdcss-tablecap">.$\\epsilon$=1e-10</span>' in out
+
+    def test_table_caption_inside_fence_untouched(self) -> None:
+        out = pre("```\nTable: .$x$\n```\n")["markdown"]
+        assert "mdcss-tablecap" not in out
 
 
 @needs_node
@@ -401,6 +431,37 @@ class TestPostImageTitle:
         assert "mdcss-fig-float-left" in out
         assert "图1:\tf" in out
         assert out.count("<p") == 2  # merge did not fire
+
+
+@needs_node
+class TestPostCaption:
+    """Rendered caption markers are moved into figures."""
+
+    def test_image_caption_marker_moves_rendered_markup(self) -> None:
+        html = (
+            '<p><img src="x.png" alt="40%|.$\\epsilon$=1e-10">'
+            '<span class="mdcss-figcap">.<span class="katex">EPS</span>=1e-10</span></p>\n'
+        )
+        out = post(html)
+        assert "图1:" in out
+        assert '<span class="katex">EPS</span>' in out
+        assert "@@MDCSS_CAP_" not in out
+
+    def test_table_caption_marker_moves_rendered_markup(self) -> None:
+        html = (
+            '<p>Table: <span class="mdcss-tablecap">.<span class="katex">EPS</span></span></p>\n'
+            + _table_html("a", [("1", "2")])
+        )
+        out = post(html)
+        assert "表1:" in out
+        assert '<span class="katex">EPS</span>' in out
+        assert "mdcss-tablecap" not in out
+
+    def test_unmatched_marker_stays_inert(self) -> None:
+        html = '<p>Table: <span class="mdcss-tablecap">.cap</span></p>\n<p>next</p>\n'
+        out = post(html)
+        assert '<span class="mdcss-figcap">.cap</span>' in out
+        assert "@@MDCSS_CAP_" not in out
 
 
 @needs_node

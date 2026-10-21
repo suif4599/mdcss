@@ -19,10 +19,11 @@ function rewriteImgStyle(imgTag, style) {
 }
 
 html = html.replace(
-    /<img[^\>]*>/g,
-    (imgTag) => {
+    /(<img[^\>]*>)(?:[ \t]*@@MDCSS_CAP_(\d+)@@)?/g,
+    (_match, imgTag, captionIndex) => {
         const capMatch = imgTag.match(/\bdata-mdcss-cap="([^"]*)"/i);
-        const caption = capMatch ? capMatch[1] : '';
+        const stored = captionIndex !== undefined ? __mdcssCaptionStore[Number(captionIndex)] : undefined;
+        const caption = stored !== undefined ? stored : (capMatch ? capMatch[1] : '');
         const isRow = hasMdcssClass(imgTag, 'mdcss-row');
         if (!caption && !isRow) return imgTag;
         // Consume the marker attribute; the caption lives in the figcaption below.
@@ -150,4 +151,9 @@ let cnt = 0;
 html = html.replace(/@COUNT_PLACEHOLDER@/g, (match) => {
     cnt += 1;
     return cnt;
+});
+
+html = html.replace(/@@MDCSS_CAP_(\d+)@@/g, (match, indexText) => {
+    const content = __mdcssCaptionStore[Number(indexText)];
+    return content === undefined ? match : `<span class="mdcss-figcap">${content}</span>`;
 });

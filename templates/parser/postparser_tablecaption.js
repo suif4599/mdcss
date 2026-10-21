@@ -18,7 +18,12 @@
 html = html.replace(
     /<p[^>]*>\s*Table:\s*(.*?)<\/p>\s*(<div(?![^>]*data-mdcss-col)[^>]*>\s*<table[\s\S]*?<\/table>\s*<\/div>|<table[\s\S]*?<\/table>)/gi,
     (_match, caption, tableHtml) => {
-        caption = caption.trim();
+        caption = caption
+            .replace(/@@MDCSS_CAP_(\d+)@@/g, (token, indexText) => {
+                const content = __mdcssCaptionStore[Number(indexText)];
+                return content === undefined ? token : content;
+            })
+            .trim();
         if (!caption) return _match;
         const prefix = caption.startsWith('.') ? '表@TABLE_COUNT_PLACEHOLDER@:\t' : '';
         const displayCaption = caption.startsWith('.') ? caption.slice(1) : caption;
