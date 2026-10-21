@@ -21,7 +21,7 @@ needs_node = pytest.mark.skipif(NODE is None, reason="node not available")
 
 def run_node(script: str) -> dict:
     proc = subprocess.run([NODE, "--input-type=module", "-e", script],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, encoding="utf-8")
     assert proc.returncode == 0, proc.stderr
     return json.loads(proc.stdout)
 

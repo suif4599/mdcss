@@ -48,7 +48,9 @@ def run_pipeline(
             "html": html,
         }
     )
-    proc = subprocess.run([NODE, RUNNER], input=payload, capture_output=True, text=True)
+    proc = subprocess.run(
+        [NODE, RUNNER], input=payload, capture_output=True, text=True, encoding="utf-8"
+    )
     assert proc.returncode == 0, proc.stderr
     return json.loads(proc.stdout)
 
