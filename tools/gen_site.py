@@ -92,7 +92,9 @@ def render_document(md_text: str) -> tuple[str, list[dict]]:
             "markdown": md_text,
         }
     )
-    proc = subprocess.run([NODE, RENDERER], input=payload, capture_output=True, text=True)
+    proc = subprocess.run(
+        [NODE, RENDERER], input=payload, capture_output=True, text=True, encoding="utf-8"
+    )
     if proc.returncode != 0:
         raise RuntimeError(f"site_render failed:\n{proc.stderr}")
     result = json.loads(proc.stdout)

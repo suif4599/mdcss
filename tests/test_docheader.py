@@ -21,13 +21,15 @@ needs_node = pytest.mark.skipif(NODE is None, reason="node not available")
 
 def run_node(script: str) -> dict:
     proc = subprocess.run([NODE, "--input-type=module", "-e", script],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, encoding="utf-8")
     assert proc.returncode == 0, proc.stderr
     return json.loads(proc.stdout)
 
 
 def node_prelude() -> str:
-    return f"import m from {str(TEMPLATE)!r};\n"
+    # A bare Windows path (D:\...) is not a valid ESM specifier; the loader
+    # only accepts file:// URLs, which as_uri() produces on every platform.
+    return f"import m from {TEMPLATE.as_uri()!r};\n"
 
 
 class TestSmoke:
