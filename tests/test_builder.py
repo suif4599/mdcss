@@ -138,7 +138,19 @@ class TestBuildStyleBlocks:
             enable_table_horizontal_scroll=False,
         )
         combined = "\n".join(blocks)
-        assert "overflow-x" in combined
+        # Whole-axis overflow: overflow-x next to a theme overflow-y:auto would
+        # compute to auto and turn the table into a scroll container.
+        assert "width: fit-content !important" in combined
+        assert "overflow: visible !important" in combined
+        assert "overflow-x" not in combined
+        # Only horizontal centring may be set: a `margin` shorthand would also
+        # drop the theme's vertical margins and glue text to the table.
+        from src.builder import _TABLE_LAYOUT_BLOCK
+
+        table_rule = _TABLE_LAYOUT_BLOCK
+        assert "margin-left: auto !important" in table_rule
+        assert "margin-right: auto !important" in table_rule
+        assert "margin: 0 auto" not in table_rule
 
     def test_zebra_strategy_rules_present(self, sample_css: Path, codeblock_css: Path, tmp_path: Path) -> None:
         from src.builder import build_style_blocks

@@ -285,8 +285,8 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
         default=_nested_get(cfg, "fonts.font_size", "16px"),
         help=(
             "Base font size for the document body (e.g., '12px', '14px', '16px'). "
-            "Smaller sizes help wide tables fit without automatic shrinking. "
-            "Default: 16px"
+            "Applied to the preview and pinned again for print, so a print never "
+            "falls back to a theme size. Default: 16px"
         ),
     )
     parser.add_argument(
@@ -322,7 +322,8 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
         type=str,
         default=_nested_get(cfg, "print.print_margin", "5mm"),
         help=(
-            "Print content margin value used as CSS padding in @media print body. "
+            "Print margin value emitted as @page { margin } in the generated print CSS. "
+            "Applies while the print dialog keeps its default margins. "
             "Supports CSS length units and 1-4 value syntax, e.g. '2cm', '20mm', '1in 0.8in'."
         ),
     )

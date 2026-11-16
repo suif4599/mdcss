@@ -58,9 +58,12 @@ class TestTemplateSubstitution:
         result = load_template("css", "printstyle.css",
                                new_rules="body { color: red; }",
                                print_margin="10mm",
+                               font_size="18px",
                                fallback_print_resets="")
         assert "body { color: red; }" in result
         assert "10mm" in result or "10mm" in result.lower() or "10 mm" in result
+        # The configured size must reach @media print, not only .markdown-preview
+        assert "font-size: 18px !important" in result
 
     def test_missing_placeholder_raises(self, tmp_path: Path) -> None:
         """Substituting a key that has no placeholder in the template."""
@@ -105,6 +108,7 @@ class TestImageTemplates:
             "css", "printstyle.css",
             new_rules="body { color: red; }",
             print_margin="10mm",
+            font_size="16px",
             fallback_print_resets='img[alt^="40%i"] { filter: none; }',
         )
         assert 'img[alt^="40%i"] { filter: none; }' in result

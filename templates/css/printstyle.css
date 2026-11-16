@@ -4,11 +4,20 @@
     break-after: auto !important;
     page-break-after: auto !important;
   }
+  /* The margin belongs on the page box. A body padding would be *added* to the
+     browser's own paper margin (10 mm in Chromium/Edge), so the configured
+     value never matched the real margin, could not be narrowed, and pushed the
+     body box past the page bottom — a short document then printed a trailing
+     blank page. @page is honoured while the print dialog keeps "Default"
+     margins. */
+  @page {
+    margin: <variable>print_margin</variable>;
+  }
   /* Auto-generated print style (cssutils based) */
   body {
     background: white !important;
     color: black !important;
-    padding: <variable>print_margin</variable> !important;
+    padding: 0 !important;
   }
   table, th, td {
     background: white !important;
@@ -133,6 +142,21 @@
   html body table.mdcss-auto tbody tr.mdcss-z td {
     background: #f2f2f2 !important;
   }
+  /* Keep a merged block on one page. postparser_zebra.js marks every row after
+     the first of a rowspan band with mdcss-join; forbidding a break before
+     those rows makes Chromium move the break above the band (what Firefox
+     does by default). Left alone, Chromium cuts the spanning cell: its
+     background is painted past the table edge on the previous page and the
+     continuation prints blank on the next. `break-inside` on tr also stops a
+     tall row from being cut in half by the page edge. */
+  html body table tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  html body table tbody tr.mdcss-join {
+    break-before: avoid !important;
+    page-break-before: avoid !important;
+  }
   html body table thead th {
     background: #e8e8e8 !important;
   }
@@ -143,4 +167,65 @@
     mix-blend-mode: normal !important;
   }
 <variable>fallback_print_resets</variable>
+  /* ---- Print geometry ---------------------------------------------------
+     Chromium lays a page out at the printable width and, when the document
+     turns out wider, re-lays it out on a wider virtual page and scales the
+     whole page down — one over-wide element therefore shrinks every line,
+     fonts included. Keep the printed document inside the page box: tables
+     wrap to the available width instead of pushing the page wider. */
+  html body, body {
+    font-size: <variable>font_size</variable> !important;
+  }
+  html, body {
+    max-width: 100% !important;
+  }
+  /* The theme re-emits `html body table { display: block; width: 100%;
+     overflow: auto; word-break: keep-all }` inside this block, so the table
+     has to be restored explicitly — as a scroll container in print it both
+     clips and widens the laid-out page. */
+  html body table,
+  .markdown-preview table {
+    display: table !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    table-layout: auto !important;
+    overflow: visible !important;
+    word-break: normal !important;
+  }
+  html body th,
+  html body td,
+  .markdown-preview th,
+  .markdown-preview td {
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+  html body figure,
+  html body img,
+  html body pre,
+  .markdown-preview figure,
+  .markdown-preview img,
+  .markdown-preview pre {
+    max-width: 100% !important;
+  }
+  /* KaTeX pairs the visible HTML with a clipped, absolutely positioned MathML
+     layer for screen readers. Chromium's print pagination still counts the
+     MathML content as page overflow, so a single inline formula can widen the
+     virtual page and shrink the whole document — and internal link
+     destinations keep the unscaled layout coordinates, which is what makes
+     PDF links land off target. The layer is invisible; drop it from print.
+     MathJax 3 has the same hidden layer under a different name. */
+  .katex-mathml,
+  mjx-assistive-mml {
+    display: none !important;
+  }
+  /* The preview shell is a scroll container on screen; in print it must not
+     be, otherwise its scrollable overflow is expanded into the page width. */
+  .crossnote,
+  .markdown-preview {
+    max-width: 100% !important;
+    overflow: visible !important;
+  }
 }

@@ -2,7 +2,7 @@
 
 **使用文档** · [语法文档(在线预览)](https://suif4599.github.io/mdcss/) · [参数列表](./docs/CONFIG.md) · [Flake](./docs/FLAKE.md) · [Inkstone 桥接](./docs/INKSTONE.md)
 
-MdCSS 是一个 Markdown 语法拓展，为 Markdown 增加图片宽度与文字环绕、表格合并单元格、多列布局、标题自动编号、图片反相、去背景等排版能力，同时完全向下兼容标准 Markdown
+MdCSS 是一个 Markdown 语法拓展，为 Markdown 增加图片宽度与文字环绕、表格合并单元格、多列布局、标题自动编号、块间空行、图片反相、去背景等排版能力，同时完全向下兼容标准 Markdown
 
 MdCSS 无法独立工作，依赖 [Markdown Preview Enhanced](https://github.com/shd101wyy/vscode-markdown-preview-enhanced)（MPE，VS Code 插件）或者 [inkstone](https://github.com/shuaiplus/inkstone)
 
@@ -12,7 +12,7 @@ MdCSS 无法独立工作，依赖 [Markdown Preview Enhanced](https://github.com
 | --- | --- |
 | **图片** | 宽度控制、单行多图、对齐、文字环绕、反相、去背景、图片标题等 |
 | **表格** | 合并单元格、表格标题、自动列宽、斑马纹等 |
-| **排版** | 多列布局、标题自动编号、段落缩进等 |
+| **排版** | 多列布局、标题自动编号、段落缩进、块间空行等 |
 
 可以 [在线预览](https://suif4599.github.io/mdcss/) MdCSS 的大多数效果，下图是一个简单的展示，包括图片效果、图片排版、多列排版、合并单元格、表格斑马纹、标题与自动编号等功能
 

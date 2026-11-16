@@ -49,6 +49,9 @@ class TestSiteGeneration:
         assert "token punctuation" in body  # build-time Prism highlighting
         assert 'src="./assets/' in body  # same-origin assets for the canvas
         assert "mdcss-bright" in body and "mdcss-inv" in body
+        assert 'class="mdcss-gap"' in body  # live \\ gap demo survived the chain
+        assert 'data-mdcss-gap="1lh"' in body
+        assert "height: 1lh !important" in body
 
     def test_sidebar_links_repo(self, tmp_path: Path) -> None:
         sys.path.insert(0, str(TOOLS))

@@ -41,14 +41,21 @@ def layout_props_json() -> str:
 # Table layout block for no-horizontal-scroll mode; templates/inkstone/
 # mdcss.css carries a scoped, token-wrapped copy of the same rules (pinned
 # by tests/test_css_sync.py).
+# `overflow: visible` is set as a whole: pairing overflow-x with a theme-set
+# overflow-y:auto makes the computed value auto and silently turns the table
+# into a scroll container (clips content and widens the print page).
 _TABLE_LAYOUT_BLOCK = """
   table {
     display: table !important;
     width: fit-content !important;
     max-width: 100% !important;
-    margin: 0 auto !important;
+    /* Only the horizontal centring is ours: keeping the theme's vertical
+       margins (`html body table { margin: 10px 0 15px 0 }`) is what separates
+       the table from the text below it. */
+    margin-left: auto !important;
+    margin-right: auto !important;
     table-layout: auto !important;
-    overflow-x: visible !important;
+    overflow: visible !important;
     font-size: inherit !important;
   }
   th, td {
@@ -218,6 +225,7 @@ def build_style_blocks(
             main_css_path,
             codeblock_css_path,
             print_margin=print_margin,
+            font_size=font_size,
             fallback_print_resets="" if enable_parser else build_fallback_print_resets(css_fallback_features or []),
         )
     )
@@ -255,6 +263,7 @@ PRE_PASSES: tuple[tuple[str, str], ...] = (
     ("preparser_lineshift.js", "both"),
     ("preparser_indent.js", "both"),
     ("preparser_fence_extract.js", "both"),
+    ("preparser_gap.js", "both"),
     ("preparser_tablecell.js", "both"),
     ("preparser_zebra.js", "both"),
     ("preparser_caption.js", "both"),
@@ -272,9 +281,11 @@ POST_PASSES: tuple[tuple[str, str], ...] = (
     ("postparser_zebra.js", "both"),
     ("postparser_tablecaption.js", "both"),
     ("postparser_imagetitle.js", "both"),
+    ("postparser_gap.js", "both"),
     ("postparser_columnstyle.js", "inkstone"),
     ("postparser_linerestore.js", "both"),
     ("postparser_columnsync.js", "mpe"),
+    ("postparser_anchor.js", "both"),
 )
 
 

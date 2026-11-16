@@ -40,6 +40,7 @@ SHARED_SELECTORS = [
     "table.mdcss-auto tbody tr.mdcss-z",
     ".has-indent p",
     ".has-indent li > p",
+    ".mdcss-gap",
 ]
 
 

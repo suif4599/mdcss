@@ -54,7 +54,8 @@ def generate_print_style(
     main_css_path: Path,
     codeblock_css_path: Path,
     reveal_css_path: Path | None = None,
-    print_margin: str = "2cm",
+    print_margin: str = "5mm",
+    font_size: str = "16px",
     fallback_print_resets: str = "",
 ):
     """Generate @media print CSS safely with cssutils."""
@@ -137,5 +138,6 @@ def generate_print_style(
         "css", "printstyle.css",
         new_rules="\n".join(new_rules),
         print_margin=print_margin,
+        font_size=font_size,
         fallback_print_resets=fallback_print_resets,
     )

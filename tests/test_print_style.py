@@ -32,6 +32,50 @@ class TestGeneratePrintStyle:
         result = generate_print_style(sample_css, codeblock_css, print_margin="10mm")
         assert "10mm" in result
 
+    def test_print_margin_uses_page_box(self, sample_css: Path, codeblock_css: Path) -> None:
+        """The margin goes on @page; a body padding would be added to the
+        browser's own paper margin (10 mm) instead of replacing it."""
+        from src.print_style import generate_print_style
+
+        result = generate_print_style(sample_css, codeblock_css, print_margin="2cm")
+        assert "@page" in result
+        assert "margin: 2cm" in result
+        assert "padding: 2cm" not in result
+
+    def test_print_font_size_wins_over_theme(self, tmp_path: Path) -> None:
+        """The theme re-emits `html body { font-size }` inside @media print, so
+        the configured size must be re-pinned after those rules."""
+        from src.print_style import generate_print_style
+
+        css_path = tmp_path / "test.css"
+        css_path.write_text("html body { font-size: 12px; }\n")
+        result = generate_print_style(css_path, css_path, print_margin="5mm", font_size="18px")
+        assert "font-size: 18px !important" in result
+        assert result.rindex("font-size: 18px !important") > result.index("font-size: 12px")
+
+    def test_print_table_is_not_a_scroll_container(self, sample_css: Path, codeblock_css: Path) -> None:
+        """A scrollable table both clips and widens the laid-out print page."""
+        from src.print_style import generate_print_style
+
+        result = generate_print_style(sample_css, codeblock_css, print_margin="5mm")
+        start = result.index("html body table,")
+        table_block = result[start : result.index("}", start)]
+        assert "display: table !important" in table_block
+        assert "max-width: 100% !important" in table_block
+        assert "overflow: visible !important" in table_block
+
+    def test_hidden_mathml_layers_not_printed(self, sample_css: Path, codeblock_css: Path) -> None:
+        """KaTeX/MathJax keep a clipped MathML twin for screen readers. Its
+        content still counts as print overflow, widens the virtual page and
+        shrinks everything — along with the PDF link destinations."""
+        from src.print_style import generate_print_style
+
+        result = generate_print_style(sample_css, codeblock_css, print_margin="5mm")
+        for selector in (".katex-mathml", "mjx-assistive-mml"):
+            start = result.index(selector)
+            block = result[start : result.index("}", start)]
+            assert "display: none !important" in block
+
     def test_zebra_strategy_rules_present(self, sample_css: Path, codeblock_css: Path) -> None:
         from src.print_style import generate_print_style
 
@@ -42,6 +86,16 @@ class TestGeneratePrintStyle:
         assert result.index("html body table.mdcss-auto tbody tr:nth-child(2n) td") < result.index(
             "html body table.mdcss-auto tbody tr.mdcss-z td"
         )
+
+    def test_merged_band_break_rules_present(self, sample_css: Path, codeblock_css: Path) -> None:
+        from src.print_style import generate_print_style
+
+        result = generate_print_style(sample_css, codeblock_css, print_margin="5mm")
+        # 合并条带：行内不断页 + 续行前不断页（把整组推到下一页）
+        assert "html body table tr {" in result
+        assert "html body table tbody tr.mdcss-join {" in result
+        assert "break-before: avoid !important" in result
+        assert "page-break-before: avoid !important" in result
 
     def test_missing_css_warns(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
         from src.print_style import generate_print_style

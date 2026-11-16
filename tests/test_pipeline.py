@@ -11,8 +11,10 @@ re-capture and re-bake.
 """
 
 import json
+import re
 import shutil
 import subprocess
+import urllib.parse
 from pathlib import Path
 
 import pytest
@@ -23,6 +25,7 @@ NODE = shutil.which("node")
 needs_node = pytest.mark.skipif(NODE is None, reason="node not available")
 
 DEFAULT_MAPPERS = "none, chinese, number, number, latin, roman"
+GAP = "\\\\"  # two literal backslashes: the block-gap marker
 
 
 def run_pipeline(
@@ -48,7 +51,9 @@ def run_pipeline(
             "html": html,
         }
     )
-    proc = subprocess.run([NODE, RUNNER], input=payload, capture_output=True, text=True)
+    proc = subprocess.run(
+        [NODE, RUNNER], input=payload, capture_output=True, text=True, encoding="utf-8"
+    )
     assert proc.returncode == 0, proc.stderr
     return json.loads(proc.stdout)
 
@@ -224,6 +229,126 @@ class TestPreIndent:
     def test_angle_bracket_form(self) -> None:
         assert "<indent>" not in pre("<indent>\n\npara\n")["markdown"]
         assert '<div class="has-indent">' in pre("<indent>\n\npara\n")["markdown"]
+
+
+@needs_node
+class TestPreGap:
+    """The backslash block gap: standalone column-0 lines only."""
+
+    def test_default_one_line(self) -> None:
+        out = pre(GAP + "\n")["markdown"]
+        assert '<div class="mdcss-gap" data-mdcss-gap="1lh" aria-hidden="true"></div>' in out
+
+    def test_explicit_sizes(self) -> None:
+        for spec, expected in (
+            ("8pt", "8pt"),
+            ("1.1em", "1.1em"),
+            ("2", "2lh"),
+            ("1.5lh", "1.5lh"),
+            (" 8pt ", "8pt"),
+            ("20", "20lh"),
+            ("1000px", "1000px"),
+        ):
+            out = pre(f"{GAP}[{spec}]\n")["markdown"]
+            assert f'data-mdcss-gap="{expected}"' in out, spec
+
+    def test_invalid_or_trailing_text_stays_literal(self) -> None:
+        for line in (
+            f"{GAP}[foo]\n",
+            f"{GAP}[0]\n",
+            f"{GAP}[-1]\n",
+            f"{GAP}[21]\n",
+            f"{GAP}[1001px]\n",
+            f"{GAP} comment\n",
+            f"{GAP}[8pt] extra\n",
+            f" {GAP}\n",
+            f"text {GAP}\n",
+        ):
+            assert "mdcss-gap" not in pre(line)["markdown"], line
+
+    def test_front_matter_is_kept_and_skipped(self) -> None:
+        md = f"---\ntitle: x\n{GAP}\n---\n\nbody\n"
+        out = pre(md)["markdown"]
+        assert out.startswith(f"---\ntitle: x\n{GAP}\n---")
+        assert "mdcss-gap" not in out
+
+    def test_gap_after_front_matter(self) -> None:
+        md = f"---\ntitle: x\n---\n\n{GAP}\n\nbody\n"
+        out = pre(md)["markdown"]
+        assert out.startswith("---\ntitle: x\n---")
+        assert "mdcss-gap" in out
+
+    def test_fences_are_protected(self) -> None:
+        for src in (f"```\n{GAP}\n{GAP}[8pt]\n```\n", f"~~~\n{GAP}\n~~~\n"):
+            assert "mdcss-gap" not in pre(src)["markdown"]
+
+    def test_indented_code_and_list_lines_stay_literal(self) -> None:
+        assert "mdcss-gap" not in pre(f"    {GAP}\n")["markdown"]
+        assert "mdcss-gap" not in pre(f"- item\n\n  {GAP}\n")["markdown"]
+
+    def test_table_backslashes_are_untouched(self) -> None:
+        src = f"| a | {GAP} |\n| - | - |\n"
+        assert "mdcss-gap" not in pre(src)["markdown"]
+
+    def test_latex_line_end_is_untouched(self) -> None:
+        src = "$$\n\\begin{aligned}\na &= b \\\\\nc &= d\n\\end{aligned}\n$$\n"
+        out = pre(src)["markdown"]
+        assert "mdcss-gap" not in out
+        assert "a &= b \\\\\n" in out
+
+    def test_doubled_marker_stays_literal(self) -> None:
+        out = pre(GAP * 2 + "\n")["markdown"]
+        assert "mdcss-gap" not in out
+        assert GAP * 2 in out
+
+    def test_content_after_gap_maps_back(self) -> None:
+        md = f"para\n\n{GAP}\n\nnext\n"
+        res = pre(md)
+        final = res["markdown"].split("\n")
+        assert res["mapped"][final.index("next")] == 5
+
+    def test_gap_between_tight_lines_gets_blank_lines(self) -> None:
+        out = pre(f"a\n{GAP}\nb\n")["markdown"]
+        assert "\n\n<div class=\"mdcss-gap\"" in out
+        assert "</div>\n\nb" in out
+
+
+@needs_node
+class TestPostGap:
+    def gap(self, value: str) -> str:
+        return post(
+            f'<div class="mdcss-gap" data-mdcss-gap="{value}" aria-hidden="true"></div>'
+        )
+
+    def test_one_line_uses_lh_with_em_fallback(self) -> None:
+        out = self.gap("1lh")
+        assert "height: 1.6em !important" in out
+        assert "height: 1lh !important" in out
+        assert 'aria-hidden="true"' in out
+
+    def test_multiple_lines_use_calc(self) -> None:
+        out = self.gap("2lh")
+        assert "calc(1.6em * 2)" in out
+        assert "calc(1lh * 2)" in out
+
+    def test_explicit_length(self) -> None:
+        out = self.gap("8pt")
+        assert "height: 8pt !important" in out
+
+    def test_rebuilds_reordered_attributes_and_drops_stale_style(self) -> None:
+        out = post(
+            '<div data-mdcss-gap="1.1em" class="mdcss-gap" style="color: red"></div>'
+        )
+        assert "color: red" not in out
+        assert "height: 1.1em !important" in out
+
+    def test_raw_gap_without_data_is_untouched(self) -> None:
+        html = '<div class="mdcss-gap"></div>'
+        assert post(html) == html
+
+    def test_invalid_data_is_untouched(self) -> None:
+        html = '<div class="mdcss-gap" data-mdcss-gap="bad"></div>'
+        assert post(html) == html
 
 
 @needs_node
@@ -511,6 +636,19 @@ class TestPostZebra:
         assert '<tr class="mdcss-z" data-source-line="5">' in out
         assert '<tr class="mdcss-z" data-source-line="3">' not in out
 
+    def test_join_rows_marked_for_print(self) -> None:
+        out = post(BANDS_TABLE_HTML)
+        # 行 1 的 r2 合并覆盖行 1-2：行 2 带 mdcss-join，行 3 是独立条带
+        assert '<tr class="mdcss-join" data-source-line="4">' in out
+        assert out.count("mdcss-join") == 1
+
+    def test_join_rows_marked_in_every_strategy(self) -> None:
+        for mode in ("zebra", "nozebra"):
+            html = f'<p data-source-line="1">Table@{mode}@: .cap</p>\n' + BANDS_TABLE_HTML
+            out = post(html)
+            assert "mdcss-join" in out
+            assert 'mdcss-z"' not in out  # 非 auto 策略不加条带类
+
     def test_tagged_zebra_keeps_plain_striping(self) -> None:
         out = post(TAGGED_TABLE_HTML)
         assert 'class="mdcss-zebra"' in out
@@ -547,6 +685,80 @@ class TestPostUriDecode:
     def test_remote_src_untouched(self) -> None:
         img = '<p><img src="https://e.com/a%25b.png" alt="alt"></p>'
         assert post(img) == img
+
+
+@needs_node
+class TestPostAnchor:
+    def _hrefs(self, html: str) -> list[str]:
+        return [urllib.parse.unquote(m) for m in re.findall(r'href="#([^"]*)"', html)]
+
+    def test_punctuation_slug_difference_resolved(self) -> None:
+        html = (
+            '<h2 id="三-带标点的中文标题">三、带标点的中文标题</h2>\n'
+            '<p><a href="#%E4%B8%89%E5%B8%A6%E6%A0%87%E7%82%B9%E7%9A%84%E4%B8%AD%E6%96%87%E6%A0%87%E9%A2%98">跳转</a></p>\n'
+        )
+        out = post(html)
+        assert self._hrefs(out) == ["三-带标点的中文标题"]
+
+    def test_hyphen_difference_resolved(self) -> None:
+        html = (
+            '<h2 id="使用-code-的标题">使用 code 的标题</h2>\n'
+            '<p><a href="#%E4%BD%BF%E7%94%A8code%E7%9A%84%E6%A0%87%E9%A2%98">跳转</a></p>\n'
+        )
+        out = post(html)
+        assert self._hrefs(out) == ["使用-code-的标题"]
+
+    def test_exact_and_non_heading_links_untouched(self) -> None:
+        html = (
+            '<h2 id="pure-english-title">Pure English Title</h2>\n'
+            '<p><a href="#pure-english-title">ok</a> '
+            '<a href="#fn1">fn</a> '
+            '<a href="other.md#pure-english-title">file</a> '
+            '<a href="https://example.com/#pure-english-title">web</a></p>\n'
+        )
+        assert post(html) == html
+
+    def test_duplicate_headings_keep_first_match(self) -> None:
+        html = (
+            '<h2 id="重复标题">重复标题</h2>\n'
+            '<h2 id="重复标题-1">重复标题</h2>\n'
+            '<p><a href="#%E9%87%8D%E5%A4%8D%E6%A0%87%E9%A2%98-1">second</a></p>\n'
+        )
+        out = post(html)
+        assert self._hrefs(out) == ["重复标题-1"]
+
+    def test_auto_number_prefix_can_be_omitted(self) -> None:
+        html = (
+            '<h2 id="二-标题">二、标题</h2>\n'
+            '<p><a href="#%E6%A0%87%E9%A2%98">跳转</a></p>\n'
+        )
+        out = post(html)
+        assert self._hrefs(out) == ["二-标题"]
+
+    def test_hierarchical_number_prefix_can_be_omitted(self) -> None:
+        # number() emits "1\u200B.\u200B1 标题"; the browser sees "1.1 标题".
+        html = (
+            '<h3 id="1-1-标题">1\u200B.\u200B1 标题</h3>\n'
+            '<p><a href="#%E6%A0%87%E9%A2%98">跳转</a></p>\n'
+        )
+        out = post(html)
+        assert self._hrefs(out) == ["1-1-标题"]
+
+    def test_ambiguous_bare_title_is_not_rewritten(self) -> None:
+        html = (
+            '<h2 id="一-概述">一、概述</h2>\n'
+            '<h2 id="二-概述">二、概述</h2>\n'
+            '<p><a href="#%E6%A6%82%E8%BF%B0">跳转</a></p>\n'
+        )
+        assert post(html) == html
+
+    def test_exact_heading_wins_over_numbered_alias(self) -> None:
+        html = (
+            '<h2 id="一-标题">一、标题</h2>\n'
+            '<h2 id="标题">标题</h2>\n'
+            '<p><a href="#%E6%A0%87%E9%A2%98">跳转</a></p>\n'
+        )
+        assert post(html) == html
 
 
 @needs_node

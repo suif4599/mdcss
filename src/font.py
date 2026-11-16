@@ -165,6 +165,7 @@ def _resolve_via_fontconfig(family: str) -> Path:
         [fc_match, r"--format=%{file}\n", family],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=True,
     )
     lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
