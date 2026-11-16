@@ -87,6 +87,16 @@ class TestGeneratePrintStyle:
             "html body table.mdcss-auto tbody tr.mdcss-z td"
         )
 
+    def test_merged_band_break_rules_present(self, sample_css: Path, codeblock_css: Path) -> None:
+        from src.print_style import generate_print_style
+
+        result = generate_print_style(sample_css, codeblock_css, print_margin="5mm")
+        # 合并条带：行内不断页 + 续行前不断页（把整组推到下一页）
+        assert "html body table tr {" in result
+        assert "html body table tbody tr.mdcss-join {" in result
+        assert "break-before: avoid !important" in result
+        assert "page-break-before: avoid !important" in result
+
     def test_missing_css_warns(self, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
         from src.print_style import generate_print_style
 

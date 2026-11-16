@@ -636,6 +636,19 @@ class TestPostZebra:
         assert '<tr class="mdcss-z" data-source-line="5">' in out
         assert '<tr class="mdcss-z" data-source-line="3">' not in out
 
+    def test_join_rows_marked_for_print(self) -> None:
+        out = post(BANDS_TABLE_HTML)
+        # 行 1 的 r2 合并覆盖行 1-2：行 2 带 mdcss-join，行 3 是独立条带
+        assert '<tr class="mdcss-join" data-source-line="4">' in out
+        assert out.count("mdcss-join") == 1
+
+    def test_join_rows_marked_in_every_strategy(self) -> None:
+        for mode in ("zebra", "nozebra"):
+            html = f'<p data-source-line="1">Table@{mode}@: .cap</p>\n' + BANDS_TABLE_HTML
+            out = post(html)
+            assert "mdcss-join" in out
+            assert 'mdcss-z"' not in out  # 非 auto 策略不加条带类
+
     def test_tagged_zebra_keeps_plain_striping(self) -> None:
         out = post(TAGGED_TABLE_HTML)
         assert 'class="mdcss-zebra"' in out

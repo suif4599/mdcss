@@ -142,6 +142,21 @@
   html body table.mdcss-auto tbody tr.mdcss-z td {
     background: #f2f2f2 !important;
   }
+  /* Keep a merged block on one page. postparser_zebra.js marks every row after
+     the first of a rowspan band with mdcss-join; forbidding a break before
+     those rows makes Chromium move the break above the band (what Firefox
+     does by default). Left alone, Chromium cuts the spanning cell: its
+     background is painted past the table edge on the previous page and the
+     continuation prints blank on the next. `break-inside` on tr also stops a
+     tall row from being cut in half by the page edge. */
+  html body table tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  html body table tbody tr.mdcss-join {
+    break-before: avoid !important;
+    page-break-before: avoid !important;
+  }
   html body table thead th {
     background: #e8e8e8 !important;
   }
