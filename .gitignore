@@ -11,5 +11,10 @@ config/config.json
 # wiki generator deps
 tools/node_modules/
 
+# visual test deps and failure artifacts
+tests_visual/node_modules/
+tests_visual/out/
+.pnpm-store/
+
 # pages site build artifact
 /site/

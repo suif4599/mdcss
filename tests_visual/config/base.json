@@ -1,0 +1,44 @@
+{
+  "mdcss": {
+    "font": "{env}/fonts/DejaVuSans.ttf",
+    "code_font": "{env}/fonts/SourceCodePro-Regular.ttf",
+    "font_size": "16px",
+    "print_margin": "5mm",
+    "auto_count": "none, chinese, number, number, latin, roman",
+    "heading_underline": "",
+    "enable_parser": true,
+    "enable_table_caption": true,
+    "enable_table_horizontal_scroll": false,
+    "css_fallback_features": [],
+    "invert_bounds": "32,239",
+    "matte_bounds": "64,239"
+  },
+  "crossnote": {
+    "previewTheme": "github-light.css",
+    "codeBlockTheme": "github.css",
+    "mathRenderingOption": "KaTeX",
+    "markdownParser": "markdown-it",
+    "printBackground": true,
+    "enableScriptExecution": false,
+    "breakOnSingleNewLine": true,
+    "enableTypographer": false
+  },
+  "pdf": {
+    "channel": "chromium",
+    "format": "Letter",
+    "margin": "1cm",
+    "print_background": true,
+    "chromium_args": [
+      "--force-color-profile=srgb",
+      "--disable-lcd-text",
+      "--font-render-hinting=none",
+      "--hide-scrollbars",
+      "--no-sandbox"
+    ]
+  },
+  "compare": {
+    "delta_color": 12,
+    "delta_x": 2,
+    "dpi": 144
+  }
+}

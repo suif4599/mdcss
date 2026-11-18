@@ -23,3 +23,40 @@ nodejs = ">=26.8.2,<26.9"
 [pypi-dependencies]
 jsbeautifier = ">=1.15.4, <2"
 cssbeautifier = ">=2.0.3, <3"
+
+[feature.visual.dependencies]
+numpy = "*"
+pillow = "*"
+pymupdf = "*"
+pnpm = "*"
+font-ttf-dejavu-sans-mono = ">=2.37,<3"
+font-ttf-source-code-pro = ">=2.38,<3"
+
+[feature.visual.pypi-dependencies]
+playwright = "*"
+
+[feature.visual.tasks]
+visual-setup = "pnpm --dir tests_visual install --frozen-lockfile && python -m playwright install chromium"
+visual-bless = "python -m tests_visual.bless"
+visual-test = "python -m pytest tests_visual -q"
+
+[feature.visual.target.linux-64.dependencies]
+alsa-lib = ">=1.2.16.1,<2"
+"atk-1.0" = ">=2.38.0,<3"
+at-spi2-atk = ">=2.38.0,<3"
+at-spi2-core = ">=2.40.3,<3"
+dbus = ">=1.16.2,<2"
+libudev = ">=262.2,<263"
+libcups = ">=2.4.20,<3"
+nspr = ">=4.40,<5"
+nss = ">=3.118,<4"
+pango = ">=1.58.2,<2"
+xorg-libxcomposite = ">=0.4.7,<0.5"
+xorg-libxdamage = ">=1.1.6,<2"
+xorg-libxext = ">=1.3.7,<2"
+xorg-libxfixes = ">=6.0.2,<7"
+xorg-libxrandr = ">=1.5.5,<2"
+libxkbcommon = ">=1.13.2,<2"
+
+[environments]
+visual = { features = ["visual"] }

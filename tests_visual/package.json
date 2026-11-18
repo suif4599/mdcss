@@ -1,0 +1,8 @@
+{
+  "name": "mdcss-visual-tests",
+  "private": true,
+  "description": "Headless crossnote renderer for the mdcss PDF pixel tests",
+  "dependencies": {
+    "crossnote": "0.9.42"
+  }
+}
