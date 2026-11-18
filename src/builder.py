@@ -257,14 +257,16 @@ def parse_mappers(mappers: str) -> list[str]:
 #         every line/content rewriter (fenced text must stay untouched);
 #         fence restore after every rewriter; linediff last (it diffs the
 #         final text markdown-it renders)
-#   post: uri decode before other img work; zebra after table merges (reads
-#         rowspan) and before the caption wrap; linerestore before columnsync
+#   post: uri decode before other img work; tableheader before zebra (header
+#         rows leave the body) which is after table merges (reads rowspan) and
+#         before the caption wrap; linerestore before columnsync
 PRE_PASSES: tuple[tuple[str, str], ...] = (
     ("preparser_lineshift.js", "both"),
     ("preparser_indent.js", "both"),
     ("preparser_fence_extract.js", "both"),
     ("preparser_gap.js", "both"),
     ("preparser_tablecell.js", "both"),
+    ("preparser_tableheader.js", "both"),
     ("preparser_zebra.js", "both"),
     ("preparser_caption.js", "both"),
     ("preparser_pdf.js", "mpe"),
@@ -278,6 +280,7 @@ POST_PASSES: tuple[tuple[str, str], ...] = (
     ("postparser_uri_decode.js", "mpe"),
     ("postparser_image.js", "both"),
     ("postparser_table.js", "both"),
+    ("postparser_tableheader.js", "both"),
     ("postparser_zebra.js", "both"),
     ("postparser_tablecaption.js", "both"),
     ("postparser_imagetitle.js", "both"),

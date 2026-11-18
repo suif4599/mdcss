@@ -100,6 +100,17 @@ TAGGED_TABLE_HTML = (
 CAPTION_TABLE_HTML = '<p data-source-line="1">Table: .cap</p>\n' + _table_html("a", [("1", "2")])
 BANDS_TABLE_HTML = _table_html("a", [("r2 x", "y"), ("@MDCSS_BS_1@", "z"), ("p", "q")])
 MERGE_TABLE_HTML = _table_html("c2: H1", [(":c2: x", "r2 y"), ("@MDCSS_BS_1@", "@MDCSS_BS_1@")])
+# Baked from the pre-pass output of a two-row header: the extra row sits in
+# the body behind a marker row, padded to the four table columns.
+HEADER_TABLE_HTML = (
+    '<table data-source-line="1">\n<thead data-source-line="1">\n'
+    '<tr data-source-line="1">\n<th>@MDCSS_BS_1@</th>\n<th>指标 1</th>\n<th>指标 2</th>\n<th>指标 3</th>\n</tr>\n'
+    '</thead>\n<tbody data-source-line="3">\n'
+    '<tr data-source-line="3">\n<td>@MDCSS_THROW@</td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n'
+    '<tr data-source-line="4">\n<td>r2 项目</td>\n<td>c3 数值</td>\n<td>@MDCSS_BS_1@</td>\n<td>@MDCSS_BS_1@</td>\n</tr>\n'
+    '<tr data-source-line="5">\n<td>1</td>\n<td>2</td>\n<td>3</td>\n<td>4</td>\n</tr>\n'
+    '</tbody>\n</table>\n'
+)
 COL_HTML = (
     '<p data-source-line="1">para</p>\n'
     '<div style="display: grid; grid-template-columns: minmax(auto, 1fr) minmax(auto, 30%); '
@@ -379,6 +390,54 @@ class TestPreTableCell:
 
 
 @needs_node
+class TestPreTableHeader:
+    """Rows above the delimiter become extra header rows behind marker rows."""
+
+    def test_extra_header_rows_moved_below_delimiter(self) -> None:
+        out = pre("| A | B |\n| C | D |\n| --- | --- |\n| 1 | 2 |\n")["markdown"]
+        assert out.split("\n")[:6] == [
+            "| C | D |",
+            "| --- | --- |",
+            "| @MDCSS_THROW@ |",
+            "| A | B |",
+            "| 1 | 2 |",
+            "",
+        ]
+
+    def test_extra_header_rows_keep_source_order(self) -> None:
+        out = pre("| A | B |\n| C | D |\n| E | F |\n| --- | --- |\n")["markdown"]
+        assert out.split("\n") == [
+            "| E | F |",
+            "| --- | --- |",
+            "| @MDCSS_THROW@ |",
+            "| A | B |",
+            "| @MDCSS_THROW@ |",
+            "| C | D |",
+            "",
+        ]
+
+    def test_single_header_row_untouched(self) -> None:
+        src = "| A | B |\n| --- | --- |\n| 1 | 2 |\n"
+        assert pre(src)["markdown"] == src
+
+    def test_delimiter_cell_count_mismatch_untouched(self) -> None:
+        src = "| A | B |\n| C |\n| --- | --- |\n| 1 | 2 |\n"
+        assert pre(src)["markdown"] == src
+
+    def test_previous_table_body_not_taken_as_header(self) -> None:
+        src = "| a | b |\n| --- | --- |\n| 1 | 2 |\n| c | d |\n| --- | --- |\n"
+        assert "@MDCSS_THROW@" not in pre(src)["markdown"]
+
+    def test_indented_rows_keep_their_indent(self) -> None:
+        out = pre("  | A | B |\n  | C | D |\n  | --- | --- |\n")["markdown"]
+        assert out.startswith("  | C | D |\n  | --- | --- |\n  | @MDCSS_THROW@ |\n  | A | B |\n")
+
+    def test_fenced_table_untouched(self) -> None:
+        out = pre("```md\n| A | B |\n| C | D |\n| --- | --- |\n```\n")["markdown"]
+        assert "@MDCSS_THROW@" not in out
+
+
+@needs_node
 class TestPreZebraAndPdf:
     def test_zebra_tag_normalized_to_sentinel(self) -> None:
         assert 'Table@zebra@: <span class="mdcss-tablecap">.cap</span>' in pre("Table<zebra>: .cap\n")["markdown"]
@@ -625,6 +684,31 @@ class TestPostTable:
         assert "<td>x</td>" in deleted and "<td>\\</td>" not in deleted
         escaped = post("<table><tbody><tr><td>\\\\</td><td>x</td></tr></tbody></table>")
         assert "<td>\\</td>" in escaped
+
+
+@needs_node
+class TestPostTableHeader:
+    def test_marked_rows_lifted_into_thead(self) -> None:
+        out = post(HEADER_TABLE_HTML)
+        thead = out.split("<tbody")[0]
+        assert thead.count("<tr") == 2
+        assert "<td" not in thead
+        assert 'rowspan="2">项目</th>' in thead
+        assert 'colspan="3" rowspan="1">数值</th>' in thead
+
+    def test_lifted_rows_precede_parsed_header(self) -> None:
+        out = post(HEADER_TABLE_HTML)
+        thead = out.split("<tbody")[0]
+        assert thead.index("项目") < thead.index("指标 1")
+        assert "<th>@MDCSS_BS_1@</th>" not in thead
+
+    def test_marker_rows_and_lifted_cells_leave_body(self) -> None:
+        out = post(HEADER_TABLE_HTML)
+        assert "@MDCSS_THROW@" not in out
+        tbody = out.split("<tbody")[1]
+        assert tbody.count("<tr") == 1
+        assert "<td>1</td>" in tbody
+        assert 'class="mdcss-auto"' in out
 
 
 @needs_node
