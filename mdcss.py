@@ -100,7 +100,9 @@ def main() -> None:
 
     if args.enable_parser:
         parse_blocks, html_blocks = build_parser_blocks(
-            args.auto_count, args.enable_table_caption, args.table_caption_position
+            args.auto_count,
+            args.enable_table_caption,
+            args.table_caption_position,
         )
     else:
         parse_blocks, html_blocks = [], []
