@@ -79,6 +79,7 @@ inputs.mdcss.url = "github:suif4599/mdcss";
 | `headingUnderline` | `--heading-underline` | `""`（关闭） |
 | `enableParser` | `--enable-parser` | `false` |
 | `enableTableCaption` | `--enable-table-caption` / `--no-...` | `true` |
+| `tableCaptionPosition` | `--table-caption-position` | `"bottom"` |
 | `enableTableHorizontalScroll` | `--enable-table-horizontal-scroll` | `false` |
 | `cssFallbackFeatures` | `--css-fallback-features` | `[]`（字符串列表，等价于逗号分隔的 CLI 写法） |
 | `extensionDir` | `--extension-dir` | `null` |

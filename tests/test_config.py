@@ -80,6 +80,7 @@ class TestBuildParser:
             "print_margin",
             "enable_parser",
             "enable_table_caption",
+            "table_caption_position",
             "enable_table_horizontal_scroll",
             "auto_count",
             "output",
@@ -100,6 +101,13 @@ class TestBuildParser:
         parser = build_parser({})
         args = parser.parse_args([])
         assert args.auto_count == "none, chinese, number, number, latin, roman"
+
+    def test_parser_default_table_caption_position(self) -> None:
+        from src.config import build_parser
+
+        parser = build_parser({})
+        args = parser.parse_args([])
+        assert args.table_caption_position == "bottom"
 
 
 class TestSaveConfig:

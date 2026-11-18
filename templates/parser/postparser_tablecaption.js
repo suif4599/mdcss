@@ -1,6 +1,8 @@
 // Table: caption support
 // Usage: write "Caption text" on a line right before a markdown table.
 //        If caption starts with ".", the "表N:" prefix is shown.
+//        The caption sits below the table by default; --table-caption-position
+//        top moves it above.
 
 // This regex handles:
 //   - Direct adjacency: <p>Table: title</p>\n<table>...</table>
@@ -27,9 +29,10 @@ html = html.replace(
         if (!caption) return _match;
         const prefix = caption.startsWith('.') ? '表@TABLE_COUNT_PLACEHOLDER@:\t' : '';
         const displayCaption = caption.startsWith('.') ? caption.slice(1) : caption;
+        const captionHtml = `<figcaption style="text-align: center; overflow-wrap: break-word;">${prefix}${displayCaption}</figcaption>`;
+        const parts = "@TABLE_CAPTION_POSITION@" === "bottom" ? [tableHtml, captionHtml] : [captionHtml, tableHtml];
         return `<figure style="width: fit-content; max-width: 100%; margin: 0 auto;">
-<figcaption style="text-align: center; overflow-wrap: break-word;">${prefix}${displayCaption}</figcaption>
-${tableHtml}
+${parts.join("\n")}
 </figure>`;
     }
 );

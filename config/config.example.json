@@ -23,6 +23,7 @@
     "enable_parser": false,
     "enable_table_horizontal_scroll": false,
     "enable_table_caption": true,
+    "table_caption_position": "bottom",
     "css_fallback_features": []
   },
 

@@ -164,7 +164,9 @@ def _build_artifacts(config: dict, notebook_dir: Path) -> None:
         header_script_files: list[tuple[str, str]] = []
         if mdcss["enable_parser"]:
             parse_blocks, html_blocks = build_parser_blocks(
-                mdcss["auto_count"], mdcss["enable_table_caption"]
+                mdcss["auto_count"],
+                mdcss["enable_table_caption"],
+                mdcss["table_caption_position"],
             )
             effects = inject_image_effects_defaults(
                 load_template("docheader", "image_effects.js"),

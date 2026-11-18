@@ -31,6 +31,7 @@
     ++ lib.optional cfg.enableTableHorizontalScroll "--enable-table-horizontal-scroll"
     ++ lib.optional cfg.enableTableCaption "--enable-table-caption"
     ++ lib.optional (!cfg.enableTableCaption) "--no-enable-table-caption"
+    ++ ["--table-caption-position" cfg.tableCaptionPosition]
     # runCommand has no TTY; the declared configuration is the confirmation.
     ++ lib.optionals (cfg.cssFallbackFeatures != []) [
       "--css-fallback-features" (lib.concatStringsSep "," cfg.cssFallbackFeatures)
@@ -209,7 +210,15 @@ in {
       type = lib.types.bool;
       default = true;
       description = ''
-        Render "Table: caption" as a numbered figure caption below tables.
+        Render "Table: caption" as a numbered figure caption.
+      '';
+    };
+
+    tableCaptionPosition = lib.mkOption {
+      type = lib.types.enum ["top" "bottom"];
+      default = "bottom";
+      description = ''
+        Place table captions above or below the table.
       '';
     };
 

@@ -30,6 +30,7 @@
 | --- | --- | --- |
 | `--enable-parser` | Off | 启用 parser.js 增强功能：图片控制串、表格合并、多列、标题编号、段落缩进等，并自动向 head.html 注入 `I`/`M` 运行时处理器 |
 | `--enable-table-caption` / `--no-enable-table-caption` | 开 | 是否把 `Table: ...` 渲染为编号表标题 |
+| `--table-caption-position` | `bottom` | 表标题位置，`bottom` 在表格下方，`top` 在表格上方 |
 | `--enable-table-horizontal-scroll` | Off | 允许宽表格水平滚动 |
 | `--auto-count` | `none, chinese, number, number, latin, roman` | 标题编号样式，逗号分隔的 6 个值对应 h1–h6；支持 `number`/`latin`/`latinUpper`/`roman`/`romanUpper`/`chinese`/`none` |
 | `--heading-underline` | Off | 需要加下划线的标题级别，如 `"1,2"` 表示 h1 与 h2 |

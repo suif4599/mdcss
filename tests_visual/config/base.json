@@ -8,6 +8,7 @@
     "heading_underline": "",
     "enable_parser": true,
     "enable_table_caption": true,
+    "table_caption_position": "bottom",
     "enable_table_horizontal_scroll": false,
     "css_fallback_features": [],
     "invert_bounds": "32,239",

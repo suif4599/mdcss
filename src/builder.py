@@ -292,7 +292,19 @@ POST_PASSES: tuple[tuple[str, str], ...] = (
 )
 
 
-def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tuple[list[str], list[str]]:
+TABLE_CAPTION_POSITIONS = ("top", "bottom")
+
+
+def build_parser_blocks(
+    mappers: str,
+    enable_table_caption: bool = True,
+    table_caption_position: str = "bottom",
+) -> tuple[list[str], list[str]]:
+    if table_caption_position not in TABLE_CAPTION_POSITIONS:
+        raise ValueError(
+            f"Invalid table caption position: {table_caption_position!r}, "
+            f"expected one of {', '.join(TABLE_CAPTION_POSITIONS)}."
+        )
     parser_blocks: list[str] = []
     for name, target in PRE_PASSES:
         if target == "inkstone":
@@ -309,6 +321,8 @@ def build_parser_blocks(mappers: str, enable_table_caption: bool = True) -> tupl
         block = load_template("parser", name)
         if name == "postparser_image.js":
             block = block.replace("@MDCSS_LAYOUT_PROPS@", layout_props_json())
+        if name == "postparser_tablecaption.js":
+            block = block.replace("@TABLE_CAPTION_POSITION@", table_caption_position)
         html_blocks.append(block)
     return parser_blocks, html_blocks
 

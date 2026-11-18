@@ -192,6 +192,7 @@ def save_config(args: argparse.Namespace, config_dir: Path | None = None) -> Non
                         ("auto_count", "headings.auto_count"),
                         ("heading_underline", "headings.heading_underline"),
                         ("font_size", "fonts.font_size"),
+                        ("table_caption_position", "features.table_caption_position"),
                         ("invert_bounds", "features.invert_bounds"),
                         ("matte_bounds", "features.matte_bounds")]:
         _set(data, dotted, getattr(args, key, None))
@@ -337,7 +338,13 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
         "--enable-table-caption",
         action=argparse.BooleanOptionalAction,
         default=_nested_get(cfg, "features.enable_table_caption", True),
-        help="Render \"Table: caption\" as a numbered figure caption below tables (--no-enable-table-caption to disable).",
+        help="Render \"Table: caption\" as a numbered figure caption (--no-enable-table-caption to disable).",
+    )
+    parser.add_argument(
+        "--table-caption-position",
+        choices=["top", "bottom"],
+        default=_nested_get(cfg, "features.table_caption_position", "bottom"),
+        help="Place table captions above or below the table (default: bottom).",
     )
     parser.add_argument(
         "--enable-table-horizontal-scroll",
@@ -415,7 +422,8 @@ def build_parser(config: dict[str, Any]) -> argparse.ArgumentParser:
             "Generate the Inkstone bridge artifacts and exit: "
             "mdcss-bridge.js into <dir>/src/client/lib/markdown/ and mdcss.css into "
             "<dir>/src/client/styles/, where <dir> is an Inkstone repository root. "
-            "Reuses --auto-count and --enable-table-caption; MPE outputs are not generated."
+            "Reuses --auto-count, --enable-table-caption and --table-caption-position; "
+            "MPE outputs are not generated."
         ),
     )
     parser.add_argument(

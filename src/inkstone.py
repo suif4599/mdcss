@@ -45,7 +45,12 @@ from src.template import load_template, strip_test_hooks
 # of the bridge: the pdf import depends on crossnote's pdf2svg, uri_decode
 # fixes a crossnote-only double encoding bug, and columnsync targets
 # crossnote's scroll-sync internals.
-from src.builder import PRE_PASSES, POST_PASSES, layout_props_json  # noqa: E402
+from src.builder import (  # noqa: E402
+    POST_PASSES,
+    PRE_PASSES,
+    TABLE_CAPTION_POSITIONS,
+    layout_props_json,
+)
 
 PRE_FRAGMENTS = tuple(name for name, target in PRE_PASSES if target in ("both", "inkstone"))
 
@@ -122,7 +127,9 @@ def _load_pre_blocks(mappers: str) -> list[str]:
     return blocks
 
 
-def _load_post_blocks(enable_table_caption: bool) -> list[str]:
+def _load_post_blocks(
+    enable_table_caption: bool, table_caption_position: str
+) -> list[str]:
     blocks = []
     for name in POST_FRAGMENTS:
         if name == "postparser_tablecaption.js" and not enable_table_caption:
@@ -130,6 +137,8 @@ def _load_post_blocks(enable_table_caption: bool) -> list[str]:
         block = load_template("parser", name)
         if name == "postparser_image.js":
             block = block.replace("@MDCSS_LAYOUT_PROPS@", layout_props_json())
+        if name == "postparser_tablecaption.js":
+            block = block.replace("@TABLE_CAPTION_POSITION@", table_caption_position)
         if name == "postparser_linerestore.js":
             # Inkstone's renderer emits data-line (not crossnote's
             # data-source-line) on top-level tokens; remap the restore pass.
@@ -138,10 +147,22 @@ def _load_post_blocks(enable_table_caption: bool) -> list[str]:
     return blocks
 
 
-def build_inkstone_bridge(mappers: str, enable_table_caption: bool = True) -> str:
+def build_inkstone_bridge(
+    mappers: str,
+    enable_table_caption: bool = True,
+    table_caption_position: str = "bottom",
+) -> str:
     """Assemble the ESM bridge module (mdcss-bridge.js) content."""
+    if table_caption_position not in TABLE_CAPTION_POSITIONS:
+        raise ValueError(
+            f"Invalid table caption position: {table_caption_position!r}, "
+            f"expected one of {', '.join(TABLE_CAPTION_POSITIONS)}."
+        )
     pre_body = "\n".join(block.strip("\n") for block in _load_pre_blocks(mappers))
-    post_body = "\n".join(block.strip("\n") for block in _load_post_blocks(enable_table_caption))
+    post_body = "\n".join(
+        block.strip("\n")
+        for block in _load_post_blocks(enable_table_caption, table_caption_position)
+    )
     bridge = f"""export function mdcssPre(source) {{
 let markdown = source;
 let __mdcssHasIndent;
@@ -194,6 +215,7 @@ def write_inkstone_output(
     inkstone_repo: Path,
     mappers: str,
     enable_table_caption: bool = True,
+    table_caption_position: str = "bottom",
     invert_bounds: tuple[int, int] = DEFAULT_INVERT_BOUNDS,
     matte_bounds: tuple[int, int] = DEFAULT_MATTE_BOUNDS,
 ) -> None:
@@ -205,7 +227,10 @@ def write_inkstone_output(
     css_path = client_dir / "styles" / "mdcss.css"
     bridge_path.parent.mkdir(parents=True, exist_ok=True)
     css_path.parent.mkdir(parents=True, exist_ok=True)
-    bridge_path.write_text(build_inkstone_bridge(mappers, enable_table_caption), encoding="utf-8")
+    bridge_path.write_text(
+        build_inkstone_bridge(mappers, enable_table_caption, table_caption_position),
+        encoding="utf-8",
+    )
     runtime_path.write_text(build_inkstone_runtime(invert_bounds, matte_bounds), encoding="utf-8")
     runtime_dts_path.write_text("export {};\n", encoding="utf-8")
     css_path.write_text(load_template("inkstone", "mdcss.css"), encoding="utf-8")
